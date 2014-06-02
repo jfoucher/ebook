@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Ratchet template page</title>
+
+    <!-- Sets initial viewport load and disables zooming  -->
+    <meta name="viewport" content="initial-scale=1,width=device-width,maximum-scale=1, user-scalable=no, minimal-ui" />
+
+    <!-- Makes your prototype chrome-less once bookmarked to your phone's home screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+    <!-- Include the compiled Ratchet CSS -->
+    <link href="assets/css/app.css" rel="stylesheet" />
+
+
+</head>
+<body>
+<div id="wrapper" class="panes-outer">
+    <div class="left panes-wrapper two">
+        <section id="index" class="pane">
+            <!-- Make sure all your bars are the first things in your <body> -->
+            <footer class="bar bar-footer">
+                <a class="icon icon-plus pull-right" data-target="add-book" href="#"></a>
+                <a class="icon icon-refresh pull-left" data-refresh href="#"></a>
+                <h1 class="title">EPUB Reader</h1>
+            </footer>
+
+            <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
+            <div class="content">
+
+                <div id="spinner" class="loading" style="display:none">
+                    <img src="assets/img/spinner.gif" width="50" height="50" />
+                </div>
+                <div class="no-books" style="display:none">
+                    You don't have any books in your catalog. <br><a href="#" data-target="add-book">Add some.</a>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="read-book" class="pane">
+            <!-- Make sure all your bars are the first things in your <body> -->
+            <footer class="bar bar-footer" id="read-book-bar">
+                <a data-back class="icon icon-home pull-left" href="#"></a>
+                <a style="padding-left:5px" id="prev-chapter" class="chapter icon icon-up pull-right" href="#"></a>
+
+                <a style="padding-right:5px" id="next-chapter" class="chapter icon icon-down pull-right" href="#"></a>
+                <h1 class="title">Book title</h1>
+            </footer>
+
+            <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
+            <div class="content">
+                <div class="book-content">
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+<section id="add-book" class="modal">
+    <!-- Make sure all your bars are the first things in your <body> -->
+    <header class="bar bar-standard">
+        <form id="find-books">
+            <input type="search" placeholder="Search" id="search">
+            <!--<button class="btn btn-positive btn-block" style="width: 18%;float: right">Search</button>-->
+        </form>
+
+    </header>
+    <footer class="bar bar-footer">
+        <a class="icon icon-close pull-right" data-transition="slide-in" data-target="index" href="#"></a>
+        <h1 class="title">Add book</h1>
+    </footer>
+
+    <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
+    <div class="content">
+
+        <ul class="table-view" id="add-book-list">
+
+        </ul>
+
+    </div>
+</section>
+<canvas id="imageCanvas"></canvas>
+<!-- Include the compiled Ratchet JS -->
+<script src="assets/js/lib/js-epub.js"></script>
+<script src="assets/js/lib/js-inflate.js"></script>
+<script src="assets/js/lib/js-unzip.js"></script>
+<script src="assets/js/lib/zepto.min.js"></script>
+<script src="assets/js/lib/async_storage.js"></script>
+<script src="assets/js/lib/lodash.js"></script>
+<script src="assets/js/lib/underscore.deferred.js"></script>
+<script src="assets/js/lib/suvato.js"></script>
+<script src="assets/js/lib/l10n.js"></script>
+<script src="assets/js/lib/opds.standalone.js"></script>
+<script src="assets/js/functions.js"></script>
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>

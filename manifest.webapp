@@ -1,0 +1,48 @@
+{
+  "version": "0.1",
+  "name": "Ebook",
+  "description": "Read epub files",
+  "launch_path": "/index.html",
+  "type": "privileged",
+  "icons": {
+    "16": "/assets/img/logo-16.png",
+    "32": "/assets/img/logo-32.png",
+    "48": "/assets/img/logo-48.png",
+    "60": "/assets/img/logo-60.png",
+    "90": "/assets/img/logo-90.png",
+    "120": "/assets/img/logo-120.png",
+    "128": "/assets/img/logo-128.png",
+    "256": "/assets/img/logo-256.png"
+  },
+  "developer": {
+    "name": "Jonathan Foucher",
+    "url": "http://jfoucher.com"
+  },
+  "installs_allowed_from": [
+    "*"
+  ],
+  "locales": {
+    "es": {
+      "description": "Lee ficheros EPUB",
+      "developer": {
+        "name": "Jonathan Foucher",
+        "url": "http://jfoucher.com"
+      }
+    },
+    "fr": {
+      "description": "Lisez des fichiers EPUB",
+      "developer": {
+        "name": "Jonathan Foucher",
+        "url": "http://jfoucher.com"
+      }
+    }
+  },
+  "permissions": {
+    "device-storage:sdcard": {
+      "access": "readwrite"
+    },
+    "storage": {},
+    "systemXHR": {}
+  },
+  "default_locale": "en"
+}

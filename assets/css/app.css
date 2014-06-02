@@ -1,0 +1,296 @@
+@import "ratchet.css";
+
+
+.panes-outer {
+    width: 100%;
+    overflow: hidden;
+    height: 100%;
+}
+.panes-outer .panes-wrapper.two{
+    width: 202%;
+    position: fixed;
+    height: 100%;
+    top: 0;
+    left:0;
+    z-index: 11;
+    min-height: 100%;
+    background-color: #fff;
+    -webkit-transition: -webkit-transform 0.3s;
+    -moz-transition:    -moz-transform 0.3s;
+    transition:         transform 0.3s;
+
+}
+
+.panes-outer .panes-wrapper.two .pane:first-child .bar, .panes-outer .panes-wrapper.two .pane:first-child .notification{
+    position: fixed;
+    right: 50%;
+    left: 0;
+}
+.panes-outer .panes-wrapper.two .pane:last-child .bar, .panes-outer .panes-wrapper.two .pane:last-child .notification{
+    position: fixed;
+    right: 0;
+    left: 50%;
+}
+
+.panes-outer .panes-wrapper.left{
+    -webkit-transition: -webkit-transform 0.3s;
+    -moz-transition:    -moz-transform 0.3s;
+    transition:         transform 0.3s;
+    -webkit-transform: translate3d(0, 0, 0);
+    -ms-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+}
+
+.panes-outer .panes-wrapper.right{
+    -webkit-transition: -webkit-transform 0.3s;
+    -moz-transition:    -moz-transform 0.3s;
+    transition:         transform 0.3s;
+    -webkit-transform: translate3d(-50%, 0, 0);
+    -ms-transform: translate3d(-50%, 0, 0);
+    transform: translate3d(-50%, 0, 0);
+}
+
+.panes-outer .panes-wrapper.two .pane{
+    float: left;
+    position: relative;
+    width: 50%;
+    padding:0;
+    margin:0;
+    min-height: 100%;
+}
+
+.notification {
+    -webkit-transition: -webkit-transform 0.4s;
+    -moz-transition:    -moz-transform 0.4s;
+    transition:         transform 0.4s;
+    -webkit-transform: translate3d(0, 100%, 0);
+    -ms-transform: translate3d(0, 100%, 0);
+    transform: translate3d(0, -100%, 0);
+
+    background: #fff;
+    background: rgba(255,255,255,0.9);
+    position: fixed;
+    top:0;
+    padding: 1rem;
+    font-weight: 300;
+    font-size: 0.8rem;
+    font-family: sans-serif;
+}
+
+.bar-standard ~ .content .notification {
+    top: 44px;
+}
+
+.notification.error {
+    color: #900;
+    border-bottom: 4px solid #900;
+}
+
+.notification.success {
+    color: #05991b;
+    border-bottom: 4px solid #05991b;
+}
+.notification.progress {
+    color: #445599;
+    border-bottom: 4px solid #445599;
+}
+.notification.warning {
+    color: #ba8703;
+    border-bottom: 4px solid #ba8703;
+}
+
+.notification.show {
+    -webkit-transition: -webkit-transform 0.4s;
+    -moz-transition:    -moz-transform 0.4s;
+    transition:         transform 0.4s;
+    -webkit-transform: translate3d(0, 0, 0);
+    -ms-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+}
+.modal .notification {
+    position: fixed !important;
+    right:0 !important;
+    left: 0 !important;
+}
+
+.bar-footer{
+    transition:         transform 0.6s;
+    transform: translate3d(0, 0, 0);
+}
+
+.bar-footer.hidden {
+    visibility: visible;
+    transition:         transform 0.6s;
+    transform: translate3d(0, 100%, 0);
+}
+
+.right .loading {
+    left: 75%;
+    position: fixed;
+    top: 50%;
+    margin-top: -25px;
+    margin-left: -25px;
+}
+
+#index .loading {
+    position: relative;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.book-content {
+    padding: 1rem;
+    font-family: serif;
+    position: relative;
+}
+.book-content p {
+    color: #4a4a4a;
+    font-size: 1em;
+}
+.book-content img {
+    max-width: 100%;
+
+}
+
+.book-content h1, .book-content h2, .book-content h3 {
+    text-align: center;
+    font-family: sans-serif;
+    font-weight: 300;
+    background: #f3f3f3;
+    color: #555;
+    padding: 2rem 0;
+    margin: 2rem -1rem 0 -1rem;
+    border-top: 1px solid #ccc;
+}
+.book-content h1:first-child, .book-content h2:first-child, .book-content h3:first-child {
+    margin-top: 0;
+}
+
+.book-content h1 + *, .book-content h2 + *, .book-content h3 + * {
+    margin-top: 2rem;
+}
+.book-content h1 + h2, .book-content h1 + h3, .book-content h2 + h2, .book-content h2 + h3 {
+    margin:0 -1rem 0 -1rem;
+    border-top:none;
+}
+.book-content .body  .text > p {
+    clear:left;
+}
+
+.book-content .body  .text > p:first-child:first-letter{
+    font-size: 5em;
+    display:block;
+    float:left;
+    margin-right: 0.22rem;
+    padding-top: 0.0em;
+}
+.book-content .body  .text > p:first-child:first-line{
+    text-transform: uppercase;
+    font-size: 1.3em;
+    line-height: 0em;
+}
+
+.book-content .pgheader {
+    font-size: 0.8rem;
+    color: #ccc;
+    line-height: 0.8rem;
+}
+.book-content .pgheader br{
+    display:block;
+    height:1px;
+    margin: 1px 0;
+    line-height: 1px;
+    content:" ";
+}
+a:not([href]) {
+    display: none;
+}
+
+.bar .title{
+    margin: 0 30px;
+    width: calc(100% - 110px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 300;
+
+}
+
+.hidden {
+    visibility: hidden;
+}
+
+.table-view-cell .media-body, .book-content {
+    font-weight: 300;
+}
+.content {
+    overflow-x: hidden;
+
+}
+.book-content {
+    padding-bottom: 44px;
+}
+
+#index .bar-footer ~ .content, #add-book .bar-footer ~ .content {
+    bottom: 44px;
+}
+
+#add-book .bar-standard ~ .content {
+    top: 44px;
+}
+
+
+.book-content table {
+    max-width: 100%;
+}
+
+#add-book-list .table-view-cell > a.navigate-right:not(.btn):active {
+    background-color: #fff !important;
+}
+
+.book-loader {
+
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:0;
+    width:100%;
+    z-index:9999;
+    opacity: 1;
+    background: rgba(21, 71, 143, 0.30);
+    transform: translate3d(-100%, 0, 0);
+    transition:         opacity 0.8s, transform 2s;
+}
+
+.book-loader.start {
+    transform: translate3d(-95%, 0, 0);
+    transition:         opacity 1s, transform 0.8s;
+}
+.book-loader.removing {
+
+    transition:         opacity 2s, transform 0.8s;
+    opacity: 0;
+}
+
+.check-right:after{
+    position: absolute;
+    top: 50%;
+    display: inline-block;
+    font-family: Ratchicons;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: #bbb;
+    text-decoration: none;
+    -webkit-transform: translateY(-50%);
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+    right: 15px;
+    content: '\e810';
+    -webkit-font-smoothing: antialiased;
+}
+
+.no-books {
+    margin-top: 50%;
+    padding: 0 3rem;
+    font-weight: 300;
+    text-align: center;
+}
