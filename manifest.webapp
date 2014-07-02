@@ -1,7 +1,7 @@
 {
   "version": "0.1",
-  "name": "Ebook",
-  "description": "Read epub files",
+  "name": "eBook",
+  "description": "Great eBook reader for firefox OS. Currently only handles epub file type. Put some ebooks on your SD card and you'll be able to read within seconds. You can also download and read free ebooks from feedbooks.com",
   "launch_path": "/index.html",
   "type": "privileged",
   "icons": {
@@ -23,14 +23,14 @@
   ],
   "locales": {
     "es": {
-      "description": "Lee ficheros EPUB",
+      "description": "Un lector de libros electronicos para firefox OS. De momento solo se pueden usar ficheros epub. Ponga ficheros epub en su tarjeta SD y podra leerlos en seguida. Ademas, se pueden descargar libros gratis de feedbooks.com",
       "developer": {
         "name": "Jonathan Foucher",
         "url": "http://jfoucher.com"
       }
     },
     "fr": {
-      "description": "Lisez des fichiers EPUB",
+      "description": "Un lecteur de livres électroniques pour Firefox OS. Pour l'instant, seul le format epub est supporté. Ajoutez des fichiers epub à votre carte SD et vous pourrez les lires quelques secondes plus tard. De plus, il est possible de télécharger des livres gratuits depuis feedbooks.com",
       "developer": {
         "name": "Jonathan Foucher",
         "url": "http://jfoucher.com"
