@@ -417,8 +417,8 @@ var OPDS = {
 	 * @see Feed.parseUrl
 	 * @return (see Feed.parseUrl)
 	 */
-  access: function(feed, callback){
-    return OPDS.Feed.parseUrl(feed, callback);
+  access: function(feed, callback, browser){
+    return OPDS.Feed.parseUrl(feed, callback, browser);
   }
 };
 
@@ -490,6 +490,8 @@ OPDS.Parser = Class.$extend({
 		}
 	}
 });
+
+
 /**
  * Browser class, it will be used to access the Internet.
  * Currently based on jQuery ajax and provide IE8/9 cross domain request support
@@ -510,6 +512,12 @@ OPDS.Support.Browser = Class.$extend({
 		    browser.lastResponse = response;
 		    callback.apply(browser, [browser]);
 		  });
+
+            $.ajax({
+                url: url,
+
+            })
+
 		} catch (e) {
 		  if (jQuery.browser.msie && window.XDomainRequest) {
         var xdr = new XDomainRequest();
@@ -573,13 +581,59 @@ OPDS.Support.Browser = Class.$extend({
 	  });
   }
 });
+
+
+
+OPDS.Support.MyBrowser = OPDS.Support.Browser.$extend({
+    goTo: function(uri, callback){
+        var url = new URI(uri).str();
+        var browser = this;
+        this.lastResponse = null;
+        this.currentLocation = url;
+        try {
+            var r = $.ajax({
+                type: 'GET',
+                url: url,
+                success: function(data, status, response){
+                    browser.lastResponse = response;
+                    callback.apply(browser, [browser]);
+                },
+                headers: {
+                    "Accept-Language": navigator.mozL10n.language.code.substr(0,2)+','+navigator.mozL10n.language.code.toLowerCase()+';q=0.8'
+                }
+            });
+
+
+
+        } catch (e) {
+            if (jQuery.browser.msie && window.XDomainRequest) {
+                var xdr = new XDomainRequest();
+                xdr.open("get", url);
+                xdr.onload = function(){
+                    browser.lastResponse = this;
+                    browser.lastResponse.status = 200;
+                    callback.apply(browser, [browser]);
+                };
+                xdr.onerror = function(){
+                    browser.lastResponse = this;
+                    browser.lastResponse.status = -1;
+                    callback.apply(browser, [browser]);
+                }
+                xdr.send();
+            } else {
+                alert("Your browser is unable to load crossdomain requests!");
+            }
+        }
+    },
+});
+
 /**
  * A link is actually an array composed as :
  * [rel, url , title, mimetype, opds:price, opds:currency]
  */
 OPDS.Support.Link = Class.$extend({
   __init__: function(array, browser){
-	  this.browser = browser || new OPDS.Support.Browser();
+	  this.browser = browser || new OPDS.Support.MyBrowser();
 	  if (this.browser.currentLocation){
 		  array[1] = URI.join(this.browser.currentLocation, array[1]).str();
 		}
@@ -616,6 +670,7 @@ OPDS.Support.Link = Class.$extend({
 	 * @return (see Feed.parseUrl)
 	 */
   navigate: function(callback){
+
 	  return OPDS.Feed.parseUrl(this.url, callback, this.browser);
 	},
 

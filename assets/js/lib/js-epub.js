@@ -1,6 +1,7 @@
 (function (GLOBAL) {
     var JSEpub = function (blob) {
         this.blob = blob;
+
     }
 
     GLOBAL.JSEpub = JSEpub;
@@ -27,60 +28,112 @@
         // Error codes:
         //  -1: File is not a proper Zip file.
         processInSteps: function (notifier) {
+            var self = this;
             notifier(1);
-            if (this.unzipBlob(notifier) === false) {
-                return;
-            }
+            notifier(2);
+            notifier(3);
+            var def = _.Deferred();
+            setTimeout(function(){
+                self.getOpf(notifier);
+                self.getMimetype();
+                notifier(4);
+                def.resolve()
+            }, 100);
 
-            this.files = {};
-            this.uncompressNextCompressedFile(notifier);
+            //Got OPF data, can display book
+            def.done(function(){
+                setTimeout(function(){
+                    var p = self.postProcess();
+                    p.progress(function(extras){
+                        notifier(6, extras);
+                    });
+                    p.done(function(){
+                        notifier(5);
+                    });
+
+                }, 150);
+            });
+
+
+//            this.unzipBlob(notifier).done(function(){
+//                self.uncompressNextCompressedFile(notifier);
+//            });
+
+
+
             // When all files are decompressed, uncompressNextCompressedFile
             // will continue with the next step.
         },
 
         unzipBlob: function (notifier) {
-            var unzipper = this.unzipper(this.blob);
-            if (!unzipper.isZipFile()) {
-                notifier(-1);
-                return false;
-            }
-
-            unzipper.readEntries();
-            this.compressedFiles = unzipper.entries;
+//            var ret = _.Deferred();
+//            var unzipper = this.unzipper(this.blob);
+//            if (!unzipper.isZipFile()) {
+//                notifier(-1);
+//                ret.reject();
+//            }
+//
+//            var self = this;
+//
+//            unzipper.readEntries().done(function(entries){
+//                console.log('zip file read', entries);
+//                self.files = entries;
+//                ret.resolve();
+//            });
+//
+//            return ret;
         },
 
         uncompressNextCompressedFile: function (notifier) {
             var self = this;
-            var compressedFile = this.compressedFiles.shift();
-            if (compressedFile) {
-                notifier(2, compressedFile.fileName);
-                this.uncompressFile(compressedFile);
-                this.withTimeout(this.uncompressNextCompressedFile, notifier);
-            } else {
-                this.didUncompressAllFiles(notifier);
+
+            var ind = this.files.shift();
+            console.log('getting data for', ind);
+            if(ind) {
+                asyncStorage.getItem(ind, function(fileData){
+//                    console.log('compressed file', fileData);
+                    if (fileData) {
+                        notifier(2, ind);
+                        if (ind === "META-INF/container.xml") {
+                            self.container = fileData;
+                        } else if (ind === "mimetype") {
+                            self.mimetype = fileData;
+                        }
+
+                        self.uncompressNextCompressedFile(notifier);
+                        fileData = null;
+                    } else {
+                        self.didUncompressAllFiles(notifier);
+
+                    }
+                });
+            }else {
+                self.didUncompressAllFiles(notifier);
             }
+
+
+
         },
-        
-        // For mockability
-        withTimeout: function (func, notifier) {
-            var self = this;
-            setTimeout(function () {
-                func.call(self, notifier);
-            }, 30);
-        },
+
 
         didUncompressAllFiles: function (notifier) {
+            console.log("did uncompress all files");
             notifier(3);
             this.opfPath = this.getOpfPathFromContainer();
+            var self = this;
+            asyncStorage.getItem(this.opfPath, function(data){
+                self.readOpf(data);
+                notifier(4);
+                self.postProcess();
+                notifier(5);
+            });
+//            this.readOpf(this.files[this.opfPath]);
 
-            this.readOpf(this.files[this.opfPath]);
 
-            notifier(4);
-            this.postProcess();
-            notifier(5);
         },
 
         uncompressFile: function (compressedFile) {
+            var ret = _.Deferred();
             var data;
             if (compressedFile.compressionMethod === 0) {
                 data = compressedFile.data;
@@ -97,8 +150,13 @@
             } else if (compressedFile.fileName === "mimetype") {
                 this.mimetype = data;
             } else {
-                this.files[compressedFile.fileName] = data;
+                //console.log('uncompressed file', compressedFile.fileName, data);
+                asyncStorage.setItem(compressedFile.fileName, data, function(){
+                    ret.resolve();
+                })
             }
+
+            return ret;
         },
 
         getOpfPathFromContainer: function () {
@@ -108,7 +166,34 @@
                 .getAttribute("full-path");
         },
 
+        getOpf: function(notifier){
+            var unzipper = this.unzipper(this.blob);
+            if (!unzipper.isZipFile()) {
+                notifier(-1);
+                return
+            }
+            this.container = unzipper.readPath('META-INF/container.xml');
+            console.log('container', this.container);
+            this.opfPath = this.getOpfPathFromContainer();
+            console.log('opf path', this.opfPath);
+            this.readOpf(unzipper.readPath(this.opfPath));
+            console.log('opf data', this.opf);
+
+        },
+
+        getMimetype: function(){
+            var unzipper = this.unzipper(this.blob);
+            if (!unzipper.isZipFile()) {
+                return;
+            }
+            this.mimetype = unzipper.readPath('mimetype');
+
+        },
+
         readOpf: function (xml) {
+
+            xml = decodeURIComponent(escape(xml));
+//            console.log(xml);
             var doc = this.xmlDocument(xml);
             var opf = {
                 metadata: {},
@@ -157,6 +242,7 @@
             }
 
             this.opf = opf;
+            this.bookId = hashCode(this.opf.metadata['dc:identifier']._text)+'';
         },
 
         resolvePath: function (path, referrerLocation) {
@@ -180,7 +266,7 @@
         },
 
         findMediaTypeByHref: function (href) {
-            for (key in this.opf.manifest) {
+            for (var key in this.opf.manifest) {
                 var item = this.opf.manifest[key];
                 if (item["href"] === href) {
                     return item["media-type"];
@@ -194,77 +280,184 @@
 
         // Will modify all HTML and CSS files in place.
         postProcess: function () {
-            for (var key in this.opf.manifest) {
-                var mediaType = this.opf.manifest[key]["media-type"];
-                var href = this.opf.manifest[key]["href"];
-                var result = undefined;
-                if (mediaType === "text/css") {
-                    result = this.postProcessCSS(href);
-                } else if (mediaType === "application/xhtml+xml") {
-                    result = this.postProcessHTML(href);
-                }
-                if (result !== undefined) {
-                    this.files[href] = result;
-                }
+            var self = this;
+
+            var ret = _.Deferred();
+
+//            console.log('post process', this.opf);
+            var unzipper = this.unzipper(this.blob);
+
+            if (!unzipper.isZipFile()) {
+                console.error('not a zip file');
+                return;
             }
+//            console.log('spine length', this.opf.spine.length);
+            // save chapters to database
+
+
+
+            var saveChapter = function(num){
+
+                var progress = (num / self.opf.spine.length) * 95;
+
+
+
+                var key = self.opf.spine[num];
+
+                if (self.opf.manifest.hasOwnProperty(key)){
+                    var mediaType = self.opf.manifest[key]["media-type"];
+                    var href = self.opf.manifest[key]["href"];
+
+                    //TODO read data from this file
+
+                    var result = unzipper.readPath(href);
+                    if (mediaType === "text/css") {
+                        //result = this.postProcessCSS(result);
+                    } else if (mediaType === "application/xhtml+xml") {
+                        //TODO make this async
+                        self.postProcessHTML(result, href).done(function(html){
+                            //console.log('html for chapter '+num, html);
+                            asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
+                            if(num+1 < self.opf.spine.length) {
+
+                                ret.notify({'progress':progress, 'bookId': self.bookId});
+
+                                setTimeout(function(){
+                                    saveChapter(num+1)
+                                }, 100);
+
+                            } else {
+                                ret.resolve();
+
+                            }
+
+                        });
+//
+                    }
+
+                }
+            };
+
+            saveChapter(0);
+
+            return ret;
+        },
+
+
+        getCoverImage: function(path){
+            console.log(path);
+            var unzipper = this.unzipper(this.blob);
+            return unzipper.readPath(path);
         },
 
         postProcessCSS: function (href) {
-            var file = this.files[href];
+            var ret = _.Deferred();
             var self = this;
 
-            file = file.replace(/url\((.*?)\)/gi, function (str, url) {
-                //return str;
-                if (/^data/i.test(url)) {
-                    // Don't replace data strings
-                    return str;
-                } else {
-                    var dataUri = self.getDataUri(url, href);
-                    return "url(" + dataUri + ")";
-                }
+            asyncStorage.getItem(href, function(file, hr){
+                file = file.replace(/url\((.*?)\)/gi, function (str, url) {
+                    //return str;
+                    if (/^data/i.test(url)) {
+                        // Don't replace data strings
+                        return str;
+                    } else {
+                        var dataUri = self.getDataUri(url, hr);
+                        return "url(" + dataUri + ")";
+                    }
+                });
+                asyncStorage.setItem(hr, file, function(){
+                    ret.resolve(file);
+                });
+
             });
 
-            return file;
+
+
+            return ret;
         },
 
-        postProcessHTML: function (href) {
-            var xml = decodeURIComponent(escape(this.files[href]));
-            var doc = this.xmlDocument(xml);
-            //return doc;
+        postProcessHTML: function (xml, href) {
+            var self = this;
+            var ret = _.Deferred();
+
+            xml = decodeURIComponent(escape(xml));
+            var doc = self.xmlDocument(xml);
+
             var images = doc.getElementsByTagName("img");
-            for (var i = 0, il = images.length; i < il; i++) {
-                var image = images[i];
-                var src = image.getAttribute("src");
-                if (/^data/.test(src)) { continue }
-                image.setAttribute("src", this.getDataUri(src, href))
+
+            console.log(images.length+' images in this html');
+            if(images.length){
+                var setImageUri = function(n){
+                    var image = images[n];
+                    var src = image.getAttribute("src");
+
+//                console.log('image src', src);
+
+                    if (/^data/.test(src)) {
+                        if(n+1 < images.length) {
+                            setImageUri(n+1);
+                        } else {
+                            ret.resolve(doc.querySelector('body').innerHTML);
+                        }
+                    }
+                    self.getDataUri(src, href).done(function(dataUri){
+                        image.setAttribute("src", dataUri);
+
+                        if(n+1 < images.length) {
+                            setImageUri(n+1);
+                        } else {
+                            ret.resolve(doc.querySelector('body').innerHTML);
+                        }
+
+                    });
+                };
+
+                setImageUri(0);
+            } else {
+                ret.resolve(doc.querySelector('body').innerHTML);
             }
 
-            var head = doc.getElementsByTagName("head")[0];
-            var links = head.getElementsByTagName("link");
-            for (var i = 0, il = links.length; i < il; i++) {
-                var link = links[0];
-                if (link.getAttribute("type") === "text/css") {
-                    var inlineStyle = document.createElement("style");
-                    inlineStyle.setAttribute("type", "text/css");
-                    inlineStyle.setAttribute("data-orig-href", link.getAttribute("href"));
-
-                    var css = this.files[this.resolvePath(link.getAttribute("href"), href)];
-                    inlineStyle.appendChild(document.createTextNode(css));
-
-                    head.replaceChild(inlineStyle, link);
-                }
-            }
 
 
-
-            return doc;
+            return ret ;
         },
 
         getDataUri: function (url, href) {
             var dataHref = this.resolvePath(url, href);
             var mediaType = this.findMediaTypeByHref(dataHref);
-            var encodedData = escape(this.files[dataHref]);
-            return "data:" + mediaType + "," + encodedData;
+            var ret = _.Deferred();
+            var unzipper = this.unzipper(this.blob);
+
+//            console.log('getting data uri for ',dataHref);
+
+            var data = unzipper.readPath(dataHref);
+
+
+            var image = new Image();
+            image.onload = function(){
+                //console.log('image loaded', image.height, image.width);
+                var canvas = document.getElementById('imageCanvas');
+                if(image.width > 480) {
+                    image.height *= 480 / image.width;
+                    image.width = 480;
+                }
+                //console.log(image.height, image.width);
+                var ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.width = image.width;
+                canvas.height = image.height;
+                ctx.drawImage(image, 0, 0, image.width, image.height);
+                var smallImageData = canvas.toDataURL(mediaType);
+
+                canvas = null;
+                ctx = null;
+
+                ret.resolve(smallImageData);
+            };
+
+            image.src = "data:" + mediaType + "," + escape(data);
+
+            return ret;
         },
 
         validate: function () {
@@ -287,8 +480,9 @@
         },
 
         xmlDocument: function (xml) {
+
             var doc = new DOMParser().parseFromString(xml, "text/xml");
-//            console.log('xmlDocument', doc);
+
             if (doc.childNodes[1] && doc.childNodes[1].nodeName === "parsererror") {
                 throw doc.childNodes[1].childNodes[0].nodeValue;
             }

@@ -90,7 +90,7 @@ this.asyncStorage = (function() {
       if (value === undefined) {
         value = null;
       }
-      callback(value);
+      callback(value, key);
     });
   }
 
@@ -100,7 +100,12 @@ this.asyncStorage = (function() {
       req.onerror = function setItemOnError() {
         console.error('Error in asyncStorage.setItem(): ', req.error.name);
       };
-    }, callback);
+    }, function(o){
+        if(typeof callback === 'function') {
+            callback(value, key, o);
+        }
+
+    });
   }
 
   function removeItem(key, callback) {

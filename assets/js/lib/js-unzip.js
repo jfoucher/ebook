@@ -11,14 +11,87 @@
                 throw new Error("File is not a Zip file.");
             }
 
-            this.entries = [];
+            console.log('unzipping file');
+
+            //TODO create temp folder, unzip to folder, save paths is this.entries
+            var ret = _.Deferred();
             var e = new JSUnzip.ZipEntry(this.fileContents);
+            var deferreds = [];
+            var entries = [];
             while (typeof(e.data) === "string") {
-                this.entries.push(e);
+//                console.log(e);
+                entries.push(e.fileName);
+                deferreds[e.fileName] = _.Deferred();
+                var data;
+                if (e.compressionMethod === 0) {
+                    data = e.data;
+                } else if (e.compressionMethod === 8) {
+                    data = JSInflate.inflate(e.data);
+                } else {
+                    throw new Error("Unknown compression method "
+                        + e.compressionMethod
+                        + " encountered.");
+                }
+                //console.log('uncompressed file', compressedFile.fileName, data);
+//                asyncStorage.setItem(e.fileName, data, function(v, k){
+//                    console.log(k);
+//                    deferreds[k].resolve();
+//                });
+
+
                 e = new JSUnzip.ZipEntry(this.fileContents);
             }
-        },
+            var arr = [];
+            for( var i in deferreds ) {
+                if (deferreds.hasOwnProperty(i)){
+                    arr.push(deferreds[i]);
+//                    deferreds[i].resolve();
+                }
+            }
 
+            _.when(arr).always(function(){
+//                console.log('everything done', entries);
+                ret.resolve(entries);
+            });
+
+            return ret;
+        },
+        readPath: function (path) {
+
+            this.fileContents.resetByteIndex();
+
+            if (!this.isZipFile()) {
+                throw new Error("File is not a Zip file.");
+            }
+            //console.log('reading data for path', path);
+
+            //TODO create temp folder, unzip to folder, save paths is this.entries
+            var e = new JSUnzip.ZipEntry(this.fileContents);
+
+            while (typeof e.data === 'string') {
+                //console.log(e);
+                if(e.fileName == path) {
+                    var data;
+                    if (e.compressionMethod === 0) {
+                        data = e.data;
+                    } else if (e.compressionMethod === 8) {
+                        data = JSInflate.inflate(e.data);
+                    } else {
+                        throw new Error("Unknown compression method "
+                            + e.compressionMethod
+                            + " encountered.");
+                    }
+
+
+
+                    return data;
+                }
+
+                e = new JSUnzip.ZipEntry(this.fileContents);
+            }
+
+            return null;
+        },
         isZipFile: function () {
             return this.fileContents.getByteRangeAsNumber(0, 4) === JSUnzip.MAGIC_NUMBER;
         }

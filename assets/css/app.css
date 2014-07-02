@@ -124,18 +124,65 @@
     transform: translate3d(0, 100%, 0);
 }
 
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Loading animation container */
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5rem;
+    height: 5rem;
+    margin: -3rem 0 0 -3rem;
+}
+
+/* Spinning circle (inner circle) */
+.loading .maskedCircle {
+    width: 200%;
+    height: 200%;
+    border-radius: 5rem;
+    border: 0.3rem solid #a4a4a4;
+}
+
+/* Spinning circle mask */
+.loading .mask {
+    width: 50%;
+    height: 50%;
+    overflow: hidden;
+}
+
+/* Spinner */
+.loading .spinner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    animation: spin 1s infinite linear;
+}
 .right .loading {
     left: 75%;
     position: fixed;
     top: 50%;
-    margin-top: -25px;
-    margin-left: -25px;
+    margin-top: -2.5rem;
+    margin-left: -2.5rem;
 }
 
 #index .loading {
-    position: relative;
-    margin: 0 auto;
+    position: relative !important;
+    margin: 2rem auto 0 auto;
     text-align: center;
+    left: 0;
+    top: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+
+}
+#index .loading .maskedCircle {
+    border: 0.2rem solid #797979;
 }
 
 .book-content {
@@ -173,21 +220,27 @@
     margin:0 -1rem 0 -1rem;
     border-top:none;
 }
-.book-content .body  .text > p {
+.book-content p {
     clear:left;
 }
 
-.book-content .body  .text > p:first-child:first-letter{
+.book-content .center, .book-content .center2{
+    text-align:center;
+}
+
+.book-content p:not(.toc):not(.center):first-of-type:first-letter, .book-content p.nonindent1:first-letter{
     font-size: 5em;
     display:block;
     float:left;
+    text-transform: uppercase;
     margin-right: 0.22rem;
     padding-top: 0.0em;
 }
-.book-content .body  .text > p:first-child:first-line{
+.book-content p:not(.toc):not(.center):first-of-type:first-line, .book-content p.nonindent1:first-line{
     text-transform: uppercase;
     font-size: 1.3em;
     line-height: 0em;
+    text-align: justify;
 }
 
 .book-content .pgheader {
@@ -231,11 +284,11 @@ a:not([href]) {
 }
 
 #index .bar-footer ~ .content, #add-book .bar-footer ~ .content {
-    bottom: 44px;
+    bottom: 43px;
 }
 
 #add-book .bar-standard ~ .content {
-    top: 44px;
+    top: 43px;
 }
 
 
@@ -293,4 +346,59 @@ a:not([href]) {
     padding: 0 3rem;
     font-weight: 300;
     text-align: center;
+}
+
+.table-view, .content > .table-view:first-child {
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    margin-bottom:-1px;
+}
+
+#book-list li a.delete-book{
+    color: #428BCA;
+    position: absolute;
+    left: -3.5rem;
+    top: 50%;
+    height: 100%;
+    margin-top: -1.8rem;
+
+}
+#book-list li a.delete-book:focus, #book-list li a.delete-book:active{
+    background: #fff;
+    outline: none;
+}
+#book-list li a.delete-book span.icon{
+    font-size: 2rem !important;
+}
+#book-list li.deleting .navigate-right, #book-list li.deleting .delete-book{
+    transform: translateX(5rem);
+    transition: transform 0.8s;
+}
+#book-list li .navigate-right, #book-list li .delete-book{
+    transform: translateX(0);
+
+}
+#book-list li.deleting .navigate-right{
+    border-left: 1px solid #eee;
+}
+
+#hider {
+    position: fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    opacity: 1;
+    z-index: 9999;
+    background: #fff;
+}
+.removing {
+    opacity:0 !important;
+    transition: opacity 0.8s !important;
+}
+
+.btn.next-page {
+    margin: 1rem 5%;
+    width: 90%;
 }

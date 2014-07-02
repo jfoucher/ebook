@@ -17,6 +17,7 @@
 
 </head>
 <body>
+
 <div id="wrapper" class="panes-outer">
     <div class="left panes-wrapper two">
         <section id="index" class="pane">
@@ -24,14 +25,21 @@
             <footer class="bar bar-footer">
                 <a class="icon icon-plus pull-right" data-target="add-book" href="#"></a>
                 <a class="icon icon-refresh pull-left" data-refresh href="#"></a>
-                <h1 class="title">EPUB Reader</h1>
+
+                <h1 class="title">Ebook</h1>
             </footer>
 
             <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
             <div class="content">
 
                 <div id="spinner" class="loading" style="display:none">
-                    <img src="assets/img/spinner.gif" width="50" height="50" />
+                    <div class="spinner">
+                        <!-- Mask of the quarter of circle -->
+                        <div class="mask">
+                            <!-- Inner masked circle -->
+                            <div class="maskedCircle"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="no-books" style="display:none">
                     You don't have any books in your catalog. <br><a href="#" data-target="add-book">Add some.</a>
@@ -82,6 +90,17 @@
 
     </div>
 </section>
+<div id="hider">
+    <div class="loading">
+        <div class="spinner">
+            <!-- Mask of the quarter of circle -->
+            <div class="mask">
+                <!-- Inner masked circle -->
+                <div class="maskedCircle"></div>
+            </div>
+        </div>
+    </div>
+</div>
 <canvas id="imageCanvas"></canvas>
 <!-- Include the compiled Ratchet JS -->
 <script src="assets/js/lib/js-epub.js"></script>
