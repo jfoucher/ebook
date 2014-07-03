@@ -1,4 +1,7 @@
+
+@import "fonts.css";
 @import "ratchet.css";
+
 
 
 .panes-outer {
@@ -74,7 +77,7 @@
     padding: 1rem;
     font-weight: 300;
     font-size: 0.8rem;
-    font-family: sans-serif;
+    font-family: Lato, sans-serif;
 }
 
 .bar-standard ~ .content .notification {
@@ -187,8 +190,10 @@
 
 .book-content {
     padding: 1rem;
-    font-family: serif;
+    font-family: Merriweather, serif;
     position: relative;
+    line-height: 1.4em;
+    font-size: 1rem;
 }
 .book-content p {
     color: #4a4a4a;
@@ -201,7 +206,7 @@
 
 .book-content h1, .book-content h2, .book-content h3 {
     text-align: center;
-    font-family: sans-serif;
+    font-family: Lato, sans-serif;
     font-weight: 300;
     background: #f3f3f3;
     color: #555;

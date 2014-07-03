@@ -151,8 +151,35 @@ var showFirstPage = function (epub) {
 
 
     var ret = _.Deferred();
+    var coverpageUrl = getCoverPageUrl(epub.opf, epub.opf.metadata.meta.content, 0);
+
+    console.log('got cover url '+coverpageUrl);
 
 
+    //console.log('COVER IMAGE', coverpageUrl, epub.opf.manifest[coverpageUrl].href, epub.files[epub.opf.manifest[coverpageUrl].href]);
+    //TODO make image smaller (42px wide)
+
+    var imageData = epub.getCoverImage(epub.opf.manifest[coverpageUrl].href);
+    var coverImage = 'data:image/*;base64,'+base64_encode(imageData);
+
+    var book = {
+        id: bookId,
+        title: epub.opf.metadata['dc:title']._text,
+        cover: coverImage,
+        author: epub.opf.metadata['dc:creator']._text,
+        chapter: 0,
+        num_chapters: num,
+        scroll: 0
+    };
+    if($('#'+bookId).length == 0){
+        $('#book-list').append('<li class="table-view-cell media" id="'+bookId+'"><a href="#" class="delete-book"><span class="icon icon-trash"></span></a><a data-title="'+epub.opf.metadata['dc:title']._text+'" class="" href="'+bookId+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+epub.opf.metadata['dc:title']._text+'<p>'+epub.opf.metadata['dc:creator']._text+'</p></div></a></li>');
+    }
+    console.log('failed book', book);
+    //console.log('small image data', smallImageData);
+
+
+    ret.resolve(book);
+    return ret;
 
     try{
         var coverpageUrl = getCoverPageUrl(epub.opf, epub.opf.metadata.meta.content, 0);
@@ -236,191 +263,26 @@ var showFirstPage = function (epub) {
 };
 
 
-
-
-var updateDatabase = function(books, savedBooksIds){
+var getFilesToUpdate = function(){
     var ret = _.Deferred();
     if(typeof navigator.getDeviceStorage === 'undefined') {
         ret.reject();
-        return;
+        return ret;
     }
     var sdcard = navigator.getDeviceStorage('sdcard');
     var cursor = sdcard.enumerate();
-    $('#index').find('.loading').show();
-    $('#index').find('.no-books').hide();
+    var files = [];
     cursor.onsuccess = function () {
-        var self = this;
-        // Once we found a file we check if there is other results
         var file = this.result;
-        if(file) {
-            var bookPath = file.path + file.name;
-        }
-
-        console.log('got file', file);
-//        console.log(savedBooksIds, bookPath, savedBooksIds.indexOf(bookPath));
-
-        if(file && (file.type == 'application/epub+zip'||file.name.substr(file.name.length - 4) == 'epub') && file.name.substr(1) !== '.' && savedBooksIds.indexOf(bookPath) === -1) {
-
-
-            Suvato.progress('Processing '+file.path + file.name);
-            console.log('processing ' +file.path + file.name);
-            var reader = new FileReader();
-            reader.readAsBinaryString(file);
-            reader.onload = function(e){
-
-                console.log('read file ', e);
-
-
-                var epub = new JSEpub(e.target.result);
-
-                var step1, step2, step3, step4;
-                epub.processInSteps(function (step, extras) {
-
-                    var msg;
-                    if (step === 1) {
-                        msg = "Unzipping "+file.name;
-                        step1 = setTimeout(function(){
-                            Suvato.error('Could not unzip '+file.name);
-                            if (!self.done) {
-                                self.continue();
-                            }
-                        }, 120000);
-//                        console.log('step1 timeout is '+step1);
-                    } else if (step === 2) {
-                        if(step1){
-                            clearTimeout(step1);
-                            step1 = null;
-                        }
-
-                    } else if (step === 3) {
-                        msg = "Reading OPF for " +file.name;
-
-                        if(step1){
-                            clearTimeout(step1);
-                            step1 = null;
-                        }
-
-                        step3 = setTimeout(function(){
-                            Suvato.error('Could not read metadata for '+file.name);
-//                            console.log(self.done);
-                            if (!self.done) {
-//                                console.log('continuing');
-//                                console.log(self.result);
-                                self.continue();
-                            }
-                        }, 600000);
-//                        console.log('step3 timeout is '+step3);
-
-
-                    } else if (step === 4) {
-//                        console.log('clearing timeout '+step3);
-                        if(step3){
-                            clearTimeout(step3);
-                            step3 = null;
-                        }
-                        msg = "Post processing "+file.name;
-                        step4 = setTimeout(function(){
-                            Suvato.error('Could not post process '+file.name);
-                            if (!self.done) {
-                                self.continue();
-                            }
-                        }, 600000);
-                        console.log('Got opf data, can display book ', epub.opf);
-
-                        showFirstPage(epub).done(function(book){
-                            book.path = bookPath;
-                            savedBooksIds.push(bookPath);
-                            books.push(book);
-
-                            $('#'+book.id).append('<div class="book-loader start"></div>');
-
-                            savedBooksIds = _.uniq(savedBooksIds);
-                            books = _.uniq(books, function(item){
-                                return item.path;
-                            });
-                            asyncStorage.setItem('savedBooksIds', savedBooksIds);
-                            asyncStorage.setItem('books', books);
-                            book = null;
-                            $('#index').find('.loading').hide();
-
-                        });
-
-
-                    } else if (step === 5) {
-                        clearTimeout(step4);
-                        Suvato.success(file.path + file.name+' is ready');
-                        msg = "Finishing "+file.name;
-
-                        if (!self.done) {
-                            self.continue();
-                        }
-                        var b = $('#'+epub.bookId);
-//                        })
-                        b.find('a[data-title]').addClass('navigate-right');
-                        b.find('.book-loader').css({'transform': 'translate3d(0, 0, 0)'}).addClass('removing').on('transitionend', function(){
-                            $(this).remove();
-                        });
-
-
-                    } else if(step === 6) {
-                        clearTimeout(step4);
-                        console.log('progress', extras);
-                        var p = 95 - extras.progress;
-                        $('#'+extras.bookId).find('.book-loader').css({'transform': 'translate3d(-'+p+'%, 0, 0)'});
-
-                    } else if(step === -1) {
-                        Suvato.error(file.path + file.name+' could not be added');
-                        if (!self.done) {
-                            self.continue();
-                        }
-                    }
-
-                    if(msg) {
-                        console.log(msg);
-                    }
-
-                    // Render the "msg" here.
-                });
-
-            };
-
-        } else {
-            if (!this.done) {
-                $('#index').find('.loading').show();
-                this.continue();
-            } else {
-                ret.resolve();
-                $('#index').find('.loading').hide();
-            }
-
+        if(file && (file.type == 'application/epub+zip'||file.name.substr(file.name.length - 4) == 'epub') && file.name.substr(1) !== '.'){
+            files.push(file);
         }
         if (!this.done) {
-            $('#index').find('.loading').show();
+            this.continue();
         } else {
-            asyncStorage.setItem('savedBooksIds', savedBooksIds);
-            asyncStorage.setItem('books', books);
-            $('#index').find('.loading').hide();
-
-            if(books.length) {
-                ret.resolve();
-                Suvato.success('Ebook database update complete');
-            } else {
-                ret.reject();
-                Suvato.error('You don\'t have any books', 3000);
-                $('#index').find('.no-books').show();
-                $('#book-list').hide();
-            }
-
-
+            ret.resolve(files);
         }
-
-
-
-
     };
-
-
-
     cursor.onerror = function () {
 //        console.warn("No file found: ", this.error);
         Suvato.error('You don\'t have any books', 3000);
@@ -430,4 +292,145 @@ var updateDatabase = function(books, savedBooksIds){
         ret.reject();
     };
     return ret;
+};
+
+var createBookFromFile = function(file) {
+    var ret = _.Deferred();
+    var bookPath = file.path + file.name;
+    var book = null;
+    var reader = new FileReader();
+    reader.readAsBinaryString(file);
+    reader.onload = function(e){
+
+        var epub = new JSEpub(e.target.result);
+        var step1, step3, step4;
+        epub.processInSteps(function (step, extras) {
+
+            var msg;
+            if (step === 1) {
+                msg = "Unzipping "+file.name;
+                step1 = setTimeout(function(){
+                    Suvato.error('Could not unzip '+file.name);
+                    ret.reject();
+                }, 120000);
+//                        console.log('step1 timeout is '+step1);
+            } else if (step === 2) {
+                if(step1){
+                    clearTimeout(step1);
+                    step1 = null;
+                }
+
+            } else if (step === 3) {
+                msg = "Reading OPF for " +file.name;
+
+                if(step1){
+                    clearTimeout(step1);
+                    step1 = null;
+                }
+
+                step3 = setTimeout(function(){
+                    Suvato.error('Could not read metadata for '+file.name);
+                    ret.reject();
+                }, 600000);
+//                        console.log('step3 timeout is '+step3);
+
+
+            } else if (step === 4) {
+//                        console.log('clearing timeout '+step3);
+                if(step3){
+                    clearTimeout(step3);
+                    step3 = null;
+                }
+                msg = "Post processing "+file.name;
+                step4 = setTimeout(function(){
+                    Suvato.error('Could not post process '+file.name);
+                    ret.reject();
+                }, 600000);
+                console.log('Got opf data, can display book ', extras);
+
+                showFirstPage(epub).done(function(b){
+                    b.path = bookPath;
+                    book = b;
+
+                    $('#'+book.id).append('<div class="book-loader start"></div>');
+
+                    $('#index').find('.loading').hide();
+
+                });
+
+
+            } else if (step === 5) {
+                clearTimeout(step4);
+                Suvato.success(file.path + file.name+' is ready');
+                msg = "Finishing "+file.name;
+                ret.resolve(book);
+                var b = $('#'+epub.bookId);
+
+                b.find('a[data-title]').addClass('navigate-right');
+                b.find('.book-loader').css({'transform': 'translate3d(0, 0, 0)'}).addClass('removing').on('transitionend', function(){
+                    $(this).remove();
+                });
+
+
+
+            } else if(step === 6) {
+                clearTimeout(step4);
+//                console.log('progress', extras);
+                var p = 95 - extras.progress;
+                $('#'+extras.bookId).find('.book-loader').css({'transform': 'translate3d(-'+p+'%, 0, 0)'});
+
+            } else if(step === -1) {
+                Suvato.error(file.path + file.name+' could not be added');
+                ret.reject();
+            }
+
+            if(msg) {
+                console.log(msg);
+            }
+
+            // Render the "msg" here.
+        });
+
+    };
+
+    return ret;
+};
+
+
+
+var updateDatabase = function(books, savedBooksIds){
+
+    $('#index').find('.loading').show();
+    $('#index').find('.no-books').hide();
+
+    getFilesToUpdate().done(function(files){
+        var books = [];
+        var createNextBook = function(files, num){
+            if(num + 1 < files.length) {
+                createBookFromFile(files[num]).always(function(book){
+                    console.log(book);
+                    createNextBook(files, num+1);
+                    books.push(book);
+                });
+            } else {
+
+                console.log('all books done', books);
+
+                asyncStorage.getItem('books', function(result){
+                    if(!result) {
+                        result = [];
+                    }
+                    books = _.uniq(books.concat(result));
+                    asyncStorage.setItem('books', books)
+                });
+
+            }
+
+        };
+
+        createNextBook(files, 0);
+
+    });
+
+
 };

@@ -1,16 +1,14 @@
 (function (GLOBAL) {
     var JSEpub = function (blob) {
         this.blob = blob;
-
-    }
+        this.unzipper = new JSUnzip(blob);
+    };
 
     GLOBAL.JSEpub = JSEpub;
 
     JSEpub.prototype = {
-        // For mockability
-        unzipper: function (blob) {
-            return new JSUnzip(blob);
-        },
+
+
         inflate: function(blob) {
             return JSInflate.inflate(blob);
         },
@@ -33,25 +31,35 @@
             notifier(2);
             notifier(3);
             var def = _.Deferred();
+            console.log('will get opf');
             setTimeout(function(){
-                self.getOpf(notifier);
+                console.log('getting');
+                var opf = self.getOpf();
                 self.getMimetype();
+                console.log('got opf', opf);
+//                setTimeout(function(){
+                self.blob = null;
+                self.opf = opf;
                 notifier(4);
-                def.resolve()
-            }, 100);
+//                }, 150);
+                console.log('Got book opf data');
+                setTimeout(function(){
+
+                    def.resolve()
+                }, 1000);
+
+            }, 150);
 
             //Got OPF data, can display book
             def.done(function(){
-                setTimeout(function(){
-                    var p = self.postProcess();
-                    p.progress(function(extras){
-                        notifier(6, extras);
-                    });
-                    p.done(function(){
-                        notifier(5);
-                    });
-
-                }, 150);
+                var p = self.postProcess();
+                p.progress(function(extras){
+                    notifier(6, extras);
+                });
+                p.done(function(){
+                    notifier(5);
+                    self.ret = null;
+                });
             });
 
 
@@ -122,6 +130,7 @@
             this.opfPath = this.getOpfPathFromContainer();
             var self = this;
             asyncStorage.getItem(this.opfPath, function(data){
+
                 self.readOpf(data);
                 notifier(4);
                 self.postProcess();
@@ -166,27 +175,23 @@
                 .getAttribute("full-path");
         },
 
-        getOpf: function(notifier){
-            var unzipper = this.unzipper(this.blob);
-            if (!unzipper.isZipFile()) {
-                notifier(-1);
-                return
-            }
-            this.container = unzipper.readPath('META-INF/container.xml');
+        getOpf: function(){
+//            var unzipper = this.unzipper(this.blob);
+            this.container = this.unzipper.readPath('META-INF/container.xml');
             console.log('container', this.container);
             this.opfPath = this.getOpfPathFromContainer();
             console.log('opf path', this.opfPath);
-            this.readOpf(unzipper.readPath(this.opfPath));
-            console.log('opf data', this.opf);
+            return this.readOpf(this.unzipper.readPath(this.opfPath));
+
 
         },
 
         getMimetype: function(){
-            var unzipper = this.unzipper(this.blob);
-            if (!unzipper.isZipFile()) {
+//            var unzipper = this.unzipper(this.blob);
+            if (!this.unzipper.isZipFile()) {
                 return;
             }
-            this.mimetype = unzipper.readPath('mimetype');
+            this.mimetype = this.unzipper.readPath('mimetype');
 
         },
 
@@ -241,8 +246,9 @@
                 opf.spine.push(node.getAttribute("idref"));
             }
 
-            this.opf = opf;
-            this.bookId = hashCode(this.opf.metadata['dc:identifier']._text)+'';
+            //this.opf = opf;
+            this.bookId = hashCode(opf.metadata['dc:identifier']._text)+'';
+            return opf;
         },
 
         resolvePath: function (path, referrerLocation) {
@@ -278,76 +284,71 @@
             return match && "image/" + match[1];
         },
 
+        saveChapter: function(num){
+
+            var progress = (num / this.opf.spine.length) * 95;
+
+            var key = this.opf.spine[num];
+            var self = this;
+            if (this.opf.manifest.hasOwnProperty(key)){
+                var mediaType = this.opf.manifest[key]["media-type"];
+                var href = this.opf.manifest[key]["href"];
+
+                //TODO read data from this file
+
+                var result = this.unzipper.readPath(href);
+                if (mediaType === "text/css") {
+                    //result = this.postProcessCSS(result);
+                } else if (mediaType === "application/xhtml+xml") {
+                    //dont post process now
+
+                    this.postProcessHTML(result, href).done(function(html){
+                        console.log('html for chapter '+num);
+                        asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
+                        if(num+1 < self.opf.spine.length) {
+
+                            self.ret.notify({'progress':progress, 'bookId': self.bookId});
+
+                            setTimeout(function(){
+                                self.saveChapter(num+1);
+                            }, 100);
+
+                        } else {
+                            self.ret.resolve();
+
+                        }
+
+                    });
+
+                }
+
+            }
+        },
         // Will modify all HTML and CSS files in place.
         postProcess: function () {
-            var self = this;
 
-            var ret = _.Deferred();
+            this.ret = _.Deferred();
 
 //            console.log('post process', this.opf);
-            var unzipper = this.unzipper(this.blob);
+//            var unzipper = this.unzipper(this.blob);
 
-            if (!unzipper.isZipFile()) {
+            if (!this.unzipper.isZipFile()) {
                 console.error('not a zip file');
                 return;
             }
 //            console.log('spine length', this.opf.spine.length);
             // save chapters to database
 
+            this.saveChapter(0);
 
-
-            var saveChapter = function(num){
-
-                var progress = (num / self.opf.spine.length) * 95;
-
-
-
-                var key = self.opf.spine[num];
-
-                if (self.opf.manifest.hasOwnProperty(key)){
-                    var mediaType = self.opf.manifest[key]["media-type"];
-                    var href = self.opf.manifest[key]["href"];
-
-                    //TODO read data from this file
-
-                    var result = unzipper.readPath(href);
-                    if (mediaType === "text/css") {
-                        //result = this.postProcessCSS(result);
-                    } else if (mediaType === "application/xhtml+xml") {
-                        //TODO make this async
-                        self.postProcessHTML(result, href).done(function(html){
-                            //console.log('html for chapter '+num, html);
-                            asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
-                            if(num+1 < self.opf.spine.length) {
-
-                                ret.notify({'progress':progress, 'bookId': self.bookId});
-
-                                setTimeout(function(){
-                                    saveChapter(num+1)
-                                }, 100);
-
-                            } else {
-                                ret.resolve();
-
-                            }
-
-                        });
-//
-                    }
-
-                }
-            };
-
-            saveChapter(0);
-
-            return ret;
+            return this.ret;
         },
 
 
         getCoverImage: function(path){
             console.log(path);
-            var unzipper = this.unzipper(this.blob);
-            return unzipper.readPath(path);
+//            var unzipper = this.unzipper(this.blob);
+            return this.unzipper.readPath(path);
         },
 
         postProcessCSS: function (href) {
@@ -383,9 +384,9 @@
             xml = decodeURIComponent(escape(xml));
             var doc = self.xmlDocument(xml);
 
-            var images = doc.getElementsByTagName("img");
+            var images = [];//doc.getElementsByTagName("img");
 
-            console.log(images.length+' images in this html');
+            console.log(doc.getElementsByTagName("img").length+' images in this html');
             if(images.length){
                 var setImageUri = function(n){
                     var image = images[n];
@@ -426,12 +427,10 @@
             var dataHref = this.resolvePath(url, href);
             var mediaType = this.findMediaTypeByHref(dataHref);
             var ret = _.Deferred();
-            var unzipper = this.unzipper(this.blob);
 
 //            console.log('getting data uri for ',dataHref);
 
-            var data = unzipper.readPath(dataHref);
-
+            var data = this.unzipper.readPath(dataHref);
 
             var image = new Image();
             image.onload = function(){

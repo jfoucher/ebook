@@ -91,7 +91,13 @@ var loadBooks = function(update){
         if(update || books.length === 0) {
             //$('.loading').hide();
             Suvato.progress('Updating ebook database');
+            $('.bar, .no-books').off('click', 'a[data-refresh]');
             updateDatabase(books, savedBooksIds).done(function(){
+                $('.bar, .no-books').on('click', 'a[data-refresh]', function(e){
+                    e.preventDefault();
+                    loadBooks(true);
+
+                });
                 addDeleteLinks();
             });
         } else {
@@ -241,9 +247,6 @@ var addDeleteLinks = function(){
 
     }).on('touchstart', function(e){
         //TODO Only if not scrolled to the end
-
-
-
 
         $('#read-book-bar').removeClass('hidden');
         if(ta) clearTimeout(ta);
