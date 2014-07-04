@@ -306,17 +306,17 @@ a:not([href]) {
 }
 
 .book-loader {
-
     position:absolute;
     top:0;
-    bottom:0;
+    height: 0.2rem;
     left:0;
     width:100%;
     z-index:9999;
     opacity: 1;
-    background: rgba(21, 71, 143, 0.30);
+    background: rgba(0, 149, 158, 0.73);
+    box-shadow: 0 0 4px rgba(0, 149, 158, 1);
     transform: translate3d(-100%, 0, 0);
-    transition:         opacity 0.8s, transform 2s;
+    transition: opacity 0.8s, transform 2s;
 }
 
 .book-loader.start {
@@ -324,8 +324,8 @@ a:not([href]) {
     transition:         opacity 1s, transform 0.8s;
 }
 .book-loader.removing {
-
-    transition:         opacity 2s, transform 0.8s;
+    box-shadow: 0 0 6px rgba(0, 149, 158, 1);
+    transition:         opacity 2s, transform 0.8s, box-shadow 0.8s;
     opacity: 0;
 }
 
@@ -406,4 +406,9 @@ a:not([href]) {
 .btn.next-page {
     margin: 1rem 5%;
     width: 90%;
+}
+canvas {
+
+    image-rendering: crisp-edges;
+
 }

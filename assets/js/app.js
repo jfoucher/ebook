@@ -8,6 +8,48 @@ var removeHider = function(){
 
 };
 
+var unzipper = function(path){
+    var ret = _.Deferred();
+    var sdcard = navigator.getDeviceStorage('sdcard');
+    var req = sdcard.get(path);
+    req.onsuccess = function(e){
+        var reader = new FileReader();
+        reader.readAsBinaryString(e.target.result);
+        reader.onload = function(a){
+            ret.resolve(a.target.result);
+        };
+    };
+    return ret;
+
+};
+
+var updateImagesForChapter = function(elem, chapter, path, id) {
+    unzipper(path).done(function(data){
+        console.log('got epub data');
+        var z = new JSUnzip(data);
+        var defs = [];
+        elem.find('img').each(function(i, el){
+            console.log(el, i);
+            var $el = $(el);
+            var src = $el.attr('src');
+            var d = _.Deferred();
+            defs.push(d);
+            if (!/^data/.test(src)) {
+                console.log('converting image', src);
+                z.readPath('OPS/'+src).done(function(imageData){
+                    console.log('done converting image', src, imageData);
+                    $el.attr('src', 'data:image/*;base64,'+btoa(imageData));
+                    d.resolve();
+                });
+            }
+        });
+
+//        _.when(defs).done(function(){
+//            asyncStorage.setItem('book_'+id+'_chapters_'+chapter, elem.html());
+//        });
+    });
+}
+
 var showBook = function(id) {
     var rb = $('#read-book');
     var ret = _.Deferred();
@@ -20,13 +62,16 @@ var showBook = function(id) {
 
     rb.data('reading', id);
 
+
     findBook(id).done(function(book){
+        rb.data('reading-path', book.path);
         rb.find('.title').html(book.title);
         rb.data('chapter', book.chapter);
         rb.data('numChapters', book.num_chapters);
         asyncStorage.getItem('book_'+id+'_chapters_'+book.chapter, function(chapter){
-            rb.find('.book-content').html(chapter);
-
+            var bc = rb.find('.book-content');
+            bc.html(chapter);
+            updateImagesForChapter(bc, book.chapter, book.path, book.id);
             //TODO append button to load next chapter
             //TODO recover position and load current chapter
             rb.find('.loading').hide();
@@ -55,33 +100,13 @@ var loadBooks = function(update){
 
     //TODO save html by chapters and in separate store
 
-
-    var getBooks = _.Deferred();
-    var getBooksIds = _.Deferred();
-
     $('#index').find('.loading').show();
-    asyncStorage.getItem('books', function(result) {
+    asyncStorage.getItem('books', function(books) {
 
-        if(!result) {
-            result = [];
+        if(!books) {
+            books = [];
         }
 
-//        console.log('got books', result);
-
-        getBooks.resolve(result);
-
-    });
-
-
-
-    asyncStorage.getItem('savedBooksIds', function(result){
-        if(!result) {
-            result = [];
-        }
-        getBooksIds.resolve(result);
-    });
-
-    _.when(getBooks, getBooksIds).done(function(books, savedBooksIds){
 
 
         if(!$('#book-list').length) {
@@ -91,13 +116,9 @@ var loadBooks = function(update){
         if(update || books.length === 0) {
             //$('.loading').hide();
             Suvato.progress('Updating ebook database');
-            $('.bar, .no-books').off('click', 'a[data-refresh]');
-            updateDatabase(books, savedBooksIds).done(function(){
-                $('.bar, .no-books').on('click', 'a[data-refresh]', function(e){
-                    e.preventDefault();
-                    loadBooks(true);
-
-                });
+            $('.bar, .no-books').find('a[data-refresh]').hide();
+            updateDatabase(books).done(function(){
+                $('.bar, .no-books').find('a[data-refresh]').show();
                 addDeleteLinks();
             });
         } else {
@@ -119,12 +140,8 @@ var loadBooks = function(update){
             }
         }
 
-
-
-
     });
 
-//TODO read books from sdcard
 
 
 };
@@ -201,7 +218,9 @@ var addDeleteLinks = function(){
 
         //TODO check if we are at the last or first chapter
         asyncStorage.getItem('book_'+rb.data('reading')+'_chapters_'+nextChapter, function(chapter){
-            rb.find('.book-content').html(chapter);
+            var bc = rb.find('.book-content');
+            bc.html(chapter);
+            updateImagesForChapter(bc, nextChapter, rb.data('reading-path'), rb.data('reading'));
             rb.find('.loading').hide();
 
             rb.data('chapter', nextChapter);

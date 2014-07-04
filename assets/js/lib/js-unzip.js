@@ -19,7 +19,7 @@
             var deferreds = [];
             var entries = [];
             while (typeof(e.data) === "string") {
-//                console.log(e);
+                console.log(e);
                 entries.push(e.fileName);
                 deferreds[e.fileName] = _.Deferred();
                 var data;
@@ -57,40 +57,56 @@
             return ret;
         },
         readPath: function (path) {
+            var ret = _.Deferred();
+            var self = this;
 
-            this.fileContents.resetByteIndex();
+            //console.log('getting data from zip for '+path);
 
             if (!this.isZipFile()) {
                 throw new Error("File is not a Zip file.");
             }
-            //console.log('reading data for path', path);
+
+//            if(self.filesDone.indexOf(self.filename + path) !== -1) {
+//                asyncStorage.getItem(self.filename + path, function(r){
+//                    ret.resolve(r);
+//                });
+//                return ret;
+//            }
+
+
 
             //TODO create temp folder, unzip to folder, save paths is this.entries
-            var e = new JSUnzip.ZipEntry(this.fileContents);
+            setTimeout(function(){
+                self.fileContents.resetByteIndex();
+                var e = new JSUnzip.ZipEntry(self.fileContents);
 
-            while (typeof e.data === 'string') {
-                //console.log(e);
-                if(e.fileName == path) {
-                    var data;
-                    if (e.compressionMethod === 0) {
-                        data = e.data;
-                    } else if (e.compressionMethod === 8) {
-                        data = JSInflate.inflate(e.data);
-                    } else {
-                        throw new Error("Unknown compression method "
-                            + e.compressionMethod
-                            + " encountered.");
+                while (typeof e.data === 'string') {
+//                    console.log(e);
+                    if(e.fileName == path) {
+                        var data;
+                        if (e.compressionMethod === 0) {
+                            data = e.data;
+                        } else if (e.compressionMethod === 8) {
+                            data = JSInflate.inflate(e.data);
+                        } else {
+                            throw new Error("Unknown compression method "
+                                + e.compressionMethod
+                                + " encountered.");
+                        }
+//                        self.filesDone.push(e.fileName);
+//
+//                        asyncStorage.setItem(self.filename + e.fileName, data, function(d){
+                            ret.resolve(data);
+//                        });
+
                     }
 
-
-
-                    return data;
+                    e = new JSUnzip.ZipEntry(self.fileContents);
                 }
+            }, 100);
 
-                e = new JSUnzip.ZipEntry(this.fileContents);
-            }
 
-            return null;
+            return ret;
         },
         isZipFile: function () {
             return this.fileContents.getByteRangeAsNumber(0, 4) === JSUnzip.MAGIC_NUMBER;

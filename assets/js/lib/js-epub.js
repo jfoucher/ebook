@@ -1,6 +1,6 @@
 (function (GLOBAL) {
     var JSEpub = function (blob) {
-        this.blob = blob;
+//        this.blob = blob;
         this.unzipper = new JSUnzip(blob);
     };
 
@@ -32,23 +32,27 @@
             notifier(3);
             var def = _.Deferred();
             console.log('will get opf');
-            setTimeout(function(){
-                console.log('getting');
-                var opf = self.getOpf();
-                self.getMimetype();
-                console.log('got opf', opf);
+
+            try{
+                self.getOpf().done(function(opf){
+
 //                setTimeout(function(){
-                self.blob = null;
-                self.opf = opf;
-                notifier(4);
+                    self.opf = opf;
+                    self.getMimetype().done(function(){
+                        notifier(4).done(function(){
+                            def.resolve();
+                        });
+
+                    });
 //                }, 150);
-                console.log('Got book opf data');
-                setTimeout(function(){
+                    console.log('Got book opf data');
 
-                    def.resolve()
-                }, 1000);
+                });
 
-            }, 150);
+            } catch(e){
+                def.reject();
+            }
+
 
             //Got OPF data, can display book
             def.done(function(){
@@ -60,6 +64,8 @@
                     notifier(5);
                     self.ret = null;
                 });
+            }).fail(function(){
+                notifier(-1);
             });
 
 
@@ -177,21 +183,39 @@
 
         getOpf: function(){
 //            var unzipper = this.unzipper(this.blob);
-            this.container = this.unzipper.readPath('META-INF/container.xml');
-            console.log('container', this.container);
-            this.opfPath = this.getOpfPathFromContainer();
-            console.log('opf path', this.opfPath);
-            return this.readOpf(this.unzipper.readPath(this.opfPath));
+            var ret = _.Deferred();
+            var self = this;
+            this.unzipper.readPath('META-INF/container.xml').done(function(data) {
+                self.container = data;
+                console.log('container', self.container);
+                self.opfPath = self.getOpfPathFromContainer();
+                console.log('opf path', self.opfPath);
+                self.unzipper.readPath(self.opfPath).done(function(data) {
+                    ret.resolve(self.readOpf(data));
+                });
+
+
+            });
+
+            return ret;
+
 
 
         },
 
         getMimetype: function(){
+            var ret = _.Deferred();
 //            var unzipper = this.unzipper(this.blob);
             if (!this.unzipper.isZipFile()) {
                 return;
             }
-            this.mimetype = this.unzipper.readPath('mimetype');
+            var self = this;
+            this.unzipper.readPath('mimetype').done(function(data){
+                self.mimetype = data;
+                ret.resolve();
+            });
+
+            return ret;
 
         },
 
@@ -286,7 +310,7 @@
 
         saveChapter: function(num){
 
-            var progress = (num / this.opf.spine.length) * 95;
+            var progress = (num / this.opf.spine.length) * 100;
 
             var key = this.opf.spine[num];
             var self = this;
@@ -296,31 +320,31 @@
 
                 //TODO read data from this file
 
-                var result = this.unzipper.readPath(href);
-                if (mediaType === "text/css") {
-                    //result = this.postProcessCSS(result);
-                } else if (mediaType === "application/xhtml+xml") {
-                    //dont post process now
+                this.unzipper.readPath(href).done(function(result){
+                    if (mediaType === "text/css") {
+                        //result = this.postProcessCSS(result);
+                    } else if (mediaType === "application/xhtml+xml") {
+                        //dont post process now
 
-                    this.postProcessHTML(result, href).done(function(html){
-                        console.log('html for chapter '+num);
-                        asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
-                        if(num+1 < self.opf.spine.length) {
+                        self.postProcessHTML(result, href).done(function(html){
+                            //console.log('html for chapter '+num);
+                            asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
+                            if(num+1 < self.opf.spine.length) {
 
-                            self.ret.notify({'progress':progress, 'bookId': self.bookId});
+                                self.ret.notify({'progress':progress, 'bookId': self.bookId});
 
-                            setTimeout(function(){
                                 self.saveChapter(num+1);
-                            }, 100);
 
-                        } else {
-                            self.ret.resolve();
+                            } else {
+                                self.ret.resolve();
 
-                        }
+                            }
 
-                    });
+                        });
 
-                }
+                    }
+                });
+
 
             }
         },
@@ -333,8 +357,8 @@
 //            var unzipper = this.unzipper(this.blob);
 
             if (!this.unzipper.isZipFile()) {
-                console.error('not a zip file');
-                return;
+                //console.error('not a zip file');
+                this.ret.reject();
             }
 //            console.log('spine length', this.opf.spine.length);
             // save chapters to database
@@ -383,10 +407,10 @@
 
             xml = decodeURIComponent(escape(xml));
             var doc = self.xmlDocument(xml);
+            //TODO find a way to get images
+            var images = []; //doc.getElementsByTagName("img");
 
-            var images = [];//doc.getElementsByTagName("img");
-
-            console.log(doc.getElementsByTagName("img").length+' images in this html');
+            //console.log(doc.getElementsByTagName("img").length+' images in this html');
             if(images.length){
                 var setImageUri = function(n){
                     var image = images[n];
@@ -400,17 +424,24 @@
                         } else {
                             ret.resolve(doc.querySelector('body').innerHTML);
                         }
+                    }else {
+
+                        //Save to asyncstorage
+
+
+
+                        self.getDataUri(src, href).done(function(dataUri){
+                            image.setAttribute("src", dataUri);
+
+                            if(n+1 < images.length) {
+                                setImageUri(n+1);
+                            } else {
+                                ret.resolve(doc.querySelector('body').innerHTML);
+                            }
+
+                        });
                     }
-                    self.getDataUri(src, href).done(function(dataUri){
-                        image.setAttribute("src", dataUri);
 
-                        if(n+1 < images.length) {
-                            setImageUri(n+1);
-                        } else {
-                            ret.resolve(doc.querySelector('body').innerHTML);
-                        }
-
-                    });
                 };
 
                 setImageUri(0);
@@ -430,31 +461,33 @@
 
 //            console.log('getting data uri for ',dataHref);
 
-            var data = this.unzipper.readPath(dataHref);
+            this.unzipper.readPath(dataHref).done(function(data){
+                console.log('got image data for '+dataHref);
+                var image = new Image();
+                image.onload = function(){
+                    console.log('getdataUri image loaded', image.height, image.width);
+                    var canvas = document.getElementById('imageCanvas');
+                    if(image.width > 480) {
+                        image.height *= 480 / image.width;
+                        image.width = 480;
+                    }
+                    //console.log(image.height, image.width);
+                    var ctx = canvas.getContext("2d");
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    ctx.drawImage(image, 0, 0, image.width, image.height);
+                    var smallImageData = canvas.toDataURL(mediaType);
 
-            var image = new Image();
-            image.onload = function(){
-                //console.log('image loaded', image.height, image.width);
-                var canvas = document.getElementById('imageCanvas');
-                if(image.width > 480) {
-                    image.height *= 480 / image.width;
-                    image.width = 480;
-                }
-                //console.log(image.height, image.width);
-                var ctx = canvas.getContext("2d");
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                canvas.width = image.width;
-                canvas.height = image.height;
-                ctx.drawImage(image, 0, 0, image.width, image.height);
-                var smallImageData = canvas.toDataURL(mediaType);
+                    canvas = null;
+                    ctx = null;
 
-                canvas = null;
-                ctx = null;
+                    ret.resolve(smallImageData);
+                };
 
-                ret.resolve(smallImageData);
-            };
+                image.src = "data:" + mediaType + ";base64," + btoa(data);
+            });
 
-            image.src = "data:" + mediaType + "," + escape(data);
 
             return ret;
         },
