@@ -1,7 +1,12 @@
 (function (GLOBAL) {
     var JSEpub = function (blob) {
-//        this.blob = blob;
-        this.unzipper = new JSUnzip(blob);
+        this.blob = blob;
+//        this.unzipper = new JSUnzip(blob);
+        this.entries = null;
+
+
+
+
     };
 
     GLOBAL.JSEpub = JSEpub;
@@ -28,30 +33,57 @@
         processInSteps: function (notifier) {
             var self = this;
             notifier(1);
-            notifier(2);
-            notifier(3);
             var def = _.Deferred();
-            console.log('will get opf');
+            // use a BlobReader to read the zip from a Blob object
+            zip.createReader(new zip.BlobReader(this.blob), function(reader) {
 
-            try{
-                self.getOpf().done(function(opf){
+                // get all entries from the zip
+                reader.getEntries(function(entries) {
+                    console.log('entries', entries);
+                    if (entries.length) {
+
+                        console.log(entries);
+
+                        //get Opf
+
+                        self.entries = entries;
+
+                        notifier(3);
+
+                        console.log('will get opf');
+
+                        try{
+                            self.getOpf().done(function(opf){
 
 //                setTimeout(function(){
-                    self.opf = opf;
-                    self.getMimetype().done(function(){
-                        notifier(4).done(function(){
-                            def.resolve();
-                        });
+                                self.opf = opf;
+                                self.getMimetype().done(function(){
+                                    def.resolve();
+                                    notifier(4);
 
-                    });
+                                });
 //                }, 150);
-                    console.log('Got book opf data');
+                                console.log('Got book opf data');
 
+                            });
+
+                        } catch(e){
+                            def.reject();
+                        }
+
+
+                        notifier(2, entries);
+
+                        // get first entry content as text
+
+                    }
                 });
+            }, function(error) {
+                // onerror callback
+            });
 
-            } catch(e){
-                def.reject();
-            }
+
+
 
 
             //Got OPF data, can display book
@@ -185,16 +217,26 @@
 //            var unzipper = this.unzipper(this.blob);
             var ret = _.Deferred();
             var self = this;
-            this.unzipper.readPath('META-INF/container.xml').done(function(data) {
-                self.container = data;
-                console.log('container', self.container);
+
+            var container = _.find(this.entries, function(entry){
+                return entry.filename == 'META-INF/container.xml'
+            });
+
+            container.getData(new zip.TextWriter(), function(text) {
+                // text contains the entry data as a String
+                self.container = text;
                 self.opfPath = self.getOpfPathFromContainer();
-                console.log('opf path', self.opfPath);
-                self.unzipper.readPath(self.opfPath).done(function(data) {
-                    ret.resolve(self.readOpf(data));
+
+                var opfFile = _.find(self.entries, function(entry){
+                    return entry.filename == self.opfPath
                 });
 
+                opfFile.getData(new zip.TextWriter(), function(text) {
+                    ret.resolve(self.readOpf(text));
+                })
 
+            }, function(current, total) {
+                // onprogress callback
             });
 
             return ret;
@@ -205,14 +247,14 @@
 
         getMimetype: function(){
             var ret = _.Deferred();
-//            var unzipper = this.unzipper(this.blob);
-            if (!this.unzipper.isZipFile()) {
-                return;
-            }
-            var self = this;
-            this.unzipper.readPath('mimetype').done(function(data){
-                self.mimetype = data;
-                ret.resolve();
+
+            var mime = _.find(this.entries, function(entry){
+                return entry.filename == 'mimetype';
+            });
+
+            mime.getData(new zip.TextWriter(), function(text) {
+                console.log('mimetype', text);
+                ret.resolve(text);
             });
 
             return ret;
@@ -221,7 +263,7 @@
 
         readOpf: function (xml) {
 
-            xml = decodeURIComponent(escape(xml));
+//            xml = decodeURIComponent(escape(xml));
 //            console.log(xml);
             var doc = this.xmlDocument(xml);
             var opf = {
@@ -320,7 +362,11 @@
 
                 //TODO read data from this file
 
-                this.unzipper.readPath(href).done(function(result){
+                var file = _.find(this.entries, function(entry){
+                    return entry.filename == href;
+                });
+
+                file.getData(new zip.TextWriter(), function(result) {
                     if (mediaType === "text/css") {
                         //result = this.postProcessCSS(result);
                     } else if (mediaType === "application/xhtml+xml") {
@@ -356,10 +402,6 @@
 //            console.log('post process', this.opf);
 //            var unzipper = this.unzipper(this.blob);
 
-            if (!this.unzipper.isZipFile()) {
-                //console.error('not a zip file');
-                this.ret.reject();
-            }
 //            console.log('spine length', this.opf.spine.length);
             // save chapters to database
 
@@ -370,9 +412,17 @@
 
 
         getCoverImage: function(path){
-            console.log(path);
-//            var unzipper = this.unzipper(this.blob);
-            return this.unzipper.readPath(path);
+            var ret = _.Deferred();
+
+            var mime = _.find(this.entries, function(entry){
+                return entry.filename == path;
+            });
+
+            mime.getData(new zip.Data64URIWriter(), function(text) {
+                ret.resolve(text);
+            });
+
+            return ret;
         },
 
         postProcessCSS: function (href) {
@@ -405,12 +455,12 @@
             var self = this;
             var ret = _.Deferred();
 
-            xml = decodeURIComponent(escape(xml));
+//            xml = decodeURIComponent(escape(xml));
             var doc = self.xmlDocument(xml);
             //TODO find a way to get images
-            var images = []; //doc.getElementsByTagName("img");
+            var images = doc.getElementsByTagName("img");
 
-            //console.log(doc.getElementsByTagName("img").length+' images in this html');
+            console.log(images.length+' images in this html');
             if(images.length){
                 var setImageUri = function(n){
                     var image = images[n];
@@ -425,10 +475,6 @@
                             ret.resolve(doc.querySelector('body').innerHTML);
                         }
                     }else {
-
-                        //Save to asyncstorage
-
-
 
                         self.getDataUri(src, href).done(function(dataUri){
                             image.setAttribute("src", dataUri);
@@ -460,16 +506,27 @@
             var ret = _.Deferred();
 
 //            console.log('getting data uri for ',dataHref);
+            var maxImgWidth = screen.availWidth - 20;
+            var img = _.find(this.entries, function(entry){
+                return entry.filename == dataHref;
+            });
 
-            this.unzipper.readPath(dataHref).done(function(data){
+            img.getData(new zip.Data64URIWriter(), function(data){
                 console.log('got image data for '+dataHref);
                 var image = new Image();
                 image.onload = function(){
-                    console.log('getdataUri image loaded', image.height, image.width);
+
                     var canvas = document.getElementById('imageCanvas');
-                    if(image.width > 480) {
-                        image.height *= 480 / image.width;
-                        image.width = 480;
+
+
+                    console.log('getdataUri image loaded', image.height, image.width);
+                    console.log('max img width', maxImgWidth);
+
+                    if(image.width > maxImgWidth) {
+                        image.height *= maxImgWidth / image.width;
+                        image.width = maxImgWidth;
+                    } else {
+                        ret.resolve(data);
                     }
                     //console.log(image.height, image.width);
                     var ctx = canvas.getContext("2d");
@@ -485,7 +542,7 @@
                     ret.resolve(smallImageData);
                 };
 
-                image.src = "data:" + mediaType + ";base64," + btoa(data);
+                image.src = data;
             });
 
 

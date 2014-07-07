@@ -194,6 +194,7 @@
     position: relative;
     line-height: 1.4em;
     font-size: 1rem;
+    min-height: 100%;
 }
 .book-content p {
     color: #4a4a4a;
@@ -327,6 +328,22 @@ a:not([href]) {
     box-shadow: 0 0 6px rgba(0, 149, 158, 1);
     transition:         opacity 2s, transform 0.8s, box-shadow 0.8s;
     opacity: 0;
+}
+
+.book-read-percent {
+    position:absolute;
+    bottom:0;
+    height: 0.2rem;
+    left:0;
+    width:100%;
+    z-index:9999;
+    opacity: 1;
+    background: rgba(39, 158, 72, 0.73);
+    transform: translate3d(-100%, 0, 0);
+    transition: opacity 0.8s, transform 2s;
+}
+.book-read-percent.read {
+    transform: translate3d(0, 0, 0);
 }
 
 .check-right:after{

@@ -172,12 +172,10 @@ var showFirstPage = function (epub) {
     epub.getCoverImage(epub.opf.manifest[coverpageUrl].href).done(function(imageData){
 
         console.log('image data length', imageData.length);
-        var imgSrc;
+
         if(imageData.length < 2000000) {
             var image = new Image();
-            imgSrc = 'data:'+epub.opf.manifest[coverpageUrl]['media-type']+';base64,'+btoa(imageData);
-            console.log('image data', imgSrc);
-            image.src = imgSrc;
+
             image.onload = function(){
 
                 console.log('image loaded', image.height, image.width);
@@ -202,11 +200,12 @@ var showFirstPage = function (epub) {
                 $('#'+bookId).find('img.media-object').attr('src', book.cover);
 
             };
+            image.src = imageData;
 
         } else {
 //            imgSrc = 'data:'+epub.opf.manifest[coverpageUrl]['media-type']+';base64,'+btoa(imageData);
-//            book.cover = imgSrc;
-//            $('#'+bookId).find('img.media-object').attr('src', imgSrc);
+            book.cover = imageData;
+            $('#'+bookId).find('img.media-object').attr('src', imageData);
             ret.resolve(book);
         }
 
@@ -292,130 +291,127 @@ var getFilesToUpdate = function(){
 };
 
 var createBookFromFile = function(file) {
-    $('#index').find('.loading').show();
     var ret = _.Deferred();
     var bookPath = file.path + file.name;
-    var reader = new FileReader();
-    reader.readAsBinaryString(file);
-    reader.onload = function(e){
-
-        var epub = new JSEpub(e.target.result);
+    var epub = new JSEpub(file);
 
 
+    var step1, step3, step4;
+    var displayed;
+    epub.processInSteps(function (step, extras) {
 
-        var step1, step3, step4;
-        var displayed;
-        epub.processInSteps(function (step, extras) {
+        var msg;
 
-            var msg;
-
-            if (step === 1) {
-                console.log(file);
-                msg = "Unzipping "+file.name;
-                step1 = setTimeout(function(){
-                    Suvato.error('Could not unzip '+file.name);
-                    ret.reject();
-                }, 120000);
+        if (step === 1) {
+            msg = "Unzipping "+file.name;
+            step1 = setTimeout(function(){
+                Suvato.error('Could not unzip '+file.name);
+                ret.reject();
+            }, 120000);
 //                        console.log('step1 timeout is '+step1);
-            } else if (step === 2) {
-                if(step1){
-                    clearTimeout(step1);
-                    step1 = null;
-                }
+        } else if (step === 2) {
+            if(step1){
+                clearTimeout(step1);
+                step1 = null;
+            }
 
-            } else if (step === 3) {
-                msg = "Reading OPF for " +file.name;
+        } else if (step === 3) {
+            msg = "Reading OPF for " +file.name;
 
-                if(step1){
-                    clearTimeout(step1);
-                    step1 = null;
-                }
+            if(step1){
+                clearTimeout(step1);
+                step1 = null;
+            }
 
-                step3 = setTimeout(function(){
-                    Suvato.error('Could not read metadata for '+file.name);
-                    ret.reject();
-                }, 600000);
+            step3 = setTimeout(function(){
+                Suvato.error('Could not read metadata for '+file.name);
+                ret.reject();
+            }, 600000);
 //                        console.log('step3 timeout is '+step3);
 
 
-            } else if (step === 4) {
+        } else if (step === 4) {
 //                        console.log('clearing timeout '+step3);
-                if(step3){
-                    clearTimeout(step3);
-                    step3 = null;
-                }
-                msg = "Post processing "+file.name;
-                step4 = setTimeout(function(){
-                    Suvato.error('Could not post process '+file.name);
-                    ret.reject();
-                }, 600000);
-                console.log('Got opf data, can display book ', extras);
-                displayed = showFirstPage(epub);
-                var r = _.Deferred();
-                displayed.done(function(book){
-                    book.path = bookPath;
+            if(step3){
+                clearTimeout(step3);
+                step3 = null;
+            }
+            msg = "Post processing "+file.name;
+            step4 = setTimeout(function(){
+                Suvato.error('Could not post process '+file.name);
+                ret.reject();
+            }, 600000);
+            console.log('Got opf data, can display book ', extras);
+            displayed = showFirstPage(epub);
+            var r = _.Deferred();
+            displayed.done(function(book){
+                book.path = bookPath;
 
-                    $('#'+book.id).append('<div class="book-loader start"></div>');
+                $('#'+book.id).append('<div class="book-loader start"></div>');
 
-                    asyncStorage.getItem('savedBooksIds', function(result) {
-                        if(!result) {
-                            result = [];
-                        }
-                        asyncStorage.setItem('savedBooksIds', _.uniq([book.path].concat(result)));
-                    });
-                    asyncStorage.getItem('books', function(result){
-                        if(!result) {
-                            result = [];
-                        }
-                        asyncStorage.setItem('books', _.uniq([book].concat(result)), function(a){
-                            r.resolve();
-                            var b = $('#'+epub.bookId);
-                            $('#index').find('.loading').hide();
-                            b.find('a[data-title]').addClass('navigate-right');
-                            var bl = b.find('.book-loader');
-                            bl.css({'transform': 'translate3d(0, 0, 0)'})
-                                .on('transitionend', function(){
-                                    bl.off('transitionend');
-                                    setTimeout(function(){
-                                        bl.addClass('removing').on('transitionend', function(){
-                                            bl.remove();
-                                        });
-                                    }, 200);
+                asyncStorage.getItem('savedBooksIds', function(result) {
+                    if(!result) {
+                        result = [];
+                    }
+                    asyncStorage.setItem('savedBooksIds', _.uniq([book.path].concat(result)));
+                });
+                asyncStorage.getItem('books', function(result){
+                    if(!result) {
+                        result = [];
+                    }
+                    asyncStorage.setItem('books', _.uniq([book].concat(result)), function(a){
+                        r.resolve();
+                        $('#index').find('.loading').hide();
 
-                                });
-                        })
-                    });
+                    })
+                });
+
+            });
+            return r;
+
+
+        } else if (step === 5) {
+            clearTimeout(step4);
+//                Suvato.success(file.path + file.name+' is ready');
+            msg = "Finishing "+file.name;
+            var b = $('#'+epub.bookId);
+            b.find('a[data-title]').addClass('navigate-right');
+            var bl = b.find('.book-loader');
+            bl.css({'transform': 'translate3d(0, 0, 0)'})
+                .on('transitionend', function(){
+
+                    bl.off('transitionend');
+                    setTimeout(function(){
+
+                        ret.resolve();
+                        bl.addClass('removing').on('transitionend', function(){
+                            bl.remove();
+                        });
+                    }, 200);
 
                 });
-                return r;
 
 
-            } else if (step === 5) {
-                clearTimeout(step4);
-//                Suvato.success(file.path + file.name+' is ready');
-                msg = "Finishing "+file.name;
-                ret.resolve();
+
+        } else if(step === 6) {
+            clearTimeout(step4);
+            console.log('progress', extras);
+            var p = (100 - extras.progress) * .95;
+            $('#'+extras.bookId).find('.book-loader').css({'transform': 'translate3d(-'+p+'%, 0, 0)'});
+
+        } else if(step === -1) {
+            Suvato.error(file.path + file.name+' could not be added');
+            ret.reject();
+        }
+
+        if(msg) {
+            console.log(msg);
+        }
+
+        // Render the "msg" here.
+    });
 
 
-            } else if(step === 6) {
-                clearTimeout(step4);
-                console.log('progress', extras);
-                var p = (100 - extras.progress) * .95;
-                $('#'+extras.bookId).find('.book-loader').css({'transform': 'translate3d(-'+p+'%, 0, 0)'});
-
-            } else if(step === -1) {
-                Suvato.error(file.path + file.name+' could not be added');
-                ret.reject();
-            }
-
-            if(msg) {
-                console.log(msg);
-            }
-
-            // Render the "msg" here.
-        });
-
-    };
 
     return ret;
 };
@@ -428,22 +424,26 @@ var updateDatabase = function(books){
     $('#index').find('.no-books').hide();
     var ret = _.Deferred();
     getFilesToUpdate().done(function(files){
-        var books = [];
-        var booksIds = [];
         var createNextBook = function(files, num){
-            $('#index').find('.loading').show();
             createBookFromFile(files[num]).always(function(){
-
-                if(num + 1 < files.length) {
-
-                    createNextBook(files, num+1);
-
-                } else {
+                if(num >= files.length) {
 
                     $('#index').find('.loading').hide();
+                    ret.resolve();
 
                 }
+
             });
+            if(num + 1 < files.length) {
+
+                createNextBook(files, num+1);
+
+            } else {
+
+//                $('#index').find('.loading').hide();
+
+            }
+
 
 
         };

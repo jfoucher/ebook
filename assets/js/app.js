@@ -8,47 +8,32 @@ var removeHider = function(){
 
 };
 
-var unzipper = function(path){
-    var ret = _.Deferred();
-    var sdcard = navigator.getDeviceStorage('sdcard');
-    var req = sdcard.get(path);
-    req.onsuccess = function(e){
-        var reader = new FileReader();
-        reader.readAsBinaryString(e.target.result);
-        reader.onload = function(a){
-            ret.resolve(a.target.result);
-        };
-    };
-    return ret;
-
-};
-
 var updateImagesForChapter = function(elem, chapter, path, id) {
-    unzipper(path).done(function(data){
-        console.log('got epub data');
-        var z = new JSUnzip(data);
-        var defs = [];
-        elem.find('img').each(function(i, el){
-            console.log(el, i);
-            var $el = $(el);
-            var src = $el.attr('src');
-            var d = _.Deferred();
-            defs.push(d);
-            if (!/^data/.test(src)) {
-                console.log('converting image', src);
-                z.readPath('OPS/'+src).done(function(imageData){
-                    console.log('done converting image', src, imageData);
-                    $el.attr('src', 'data:image/*;base64,'+btoa(imageData));
-                    d.resolve();
-                });
-            }
-        });
-
-//        _.when(defs).done(function(){
-//            asyncStorage.setItem('book_'+id+'_chapters_'+chapter, elem.html());
+//    unzipper(path).done(function(data){
+//        console.log('got epub data');
+//        var z = new JSUnzip(data);
+//        var defs = [];
+//        elem.find('img').each(function(i, el){
+//            console.log(el, i);
+//            var $el = $(el);
+//            var src = $el.attr('src');
+//            var d = _.Deferred();
+//            defs.push(d);
+//            if (!/^data/.test(src)) {
+//                console.log('converting image', src);
+//                z.readPath('OPS/'+src).done(function(imageData){
+//                    console.log('done converting image', src, imageData);
+//                    $el.attr('src', 'data:image/*;base64,'+btoa(imageData));
+//                    d.resolve();
+//                });
+//            }
 //        });
-    });
-}
+//
+////        _.when(defs).done(function(){
+////            asyncStorage.setItem('book_'+id+'_chapters_'+chapter, elem.html());
+////        });
+//    });
+};
 
 var showBook = function(id) {
     var rb = $('#read-book');
@@ -64,14 +49,15 @@ var showBook = function(id) {
 
 
     findBook(id).done(function(book){
-        rb.data('reading-path', book.path);
+//        rb.data('reading-path', book.path);
         rb.find('.title').html(book.title);
         rb.data('chapter', book.chapter);
         rb.data('numChapters', book.num_chapters);
         asyncStorage.getItem('book_'+id+'_chapters_'+book.chapter, function(chapter){
-            var bc = rb.find('.book-content');
-            bc.html(chapter);
-            updateImagesForChapter(bc, book.chapter, book.path, book.id);
+            console.log('chapter'+book.chapter, chapter);
+            rb.find('.book-content').html(chapter);
+            console.log(rb.find('.book-content').html());
+//            updateImagesForChapter(bc, book.chapter, book.path, book.id);
             //TODO append button to load next chapter
             //TODO recover position and load current chapter
             rb.find('.loading').hide();
@@ -93,12 +79,14 @@ var showBook = function(id) {
 
 var loadBooks = function(update){
 
-
+    var ret = _.Deferred();
     //TODO get/save to asyncStorage and only update when necessary
 
     //TODO Make everything async
 
     //TODO save html by chapters and in separate store
+
+
 
     $('#index').find('.loading').show();
     asyncStorage.getItem('books', function(books) {
@@ -107,7 +95,7 @@ var loadBooks = function(update){
             books = [];
         }
 
-
+        ret.resolve(books);
 
         if(!$('#book-list').length) {
             $('#index').find('.content').prepend('<ul class="table-view" id="book-list"></ul>');
@@ -115,6 +103,7 @@ var loadBooks = function(update){
 
         if(update || books.length === 0) {
             //$('.loading').hide();
+            $('#read-book').find('.book-content').html('');
             Suvato.progress('Updating ebook database');
             $('.bar, .no-books').find('a[data-refresh]').hide();
             updateDatabase(books).done(function(){
@@ -129,8 +118,11 @@ var loadBooks = function(update){
                 var list = '';
                 for(var i=0;i<books.length;i++) {
                     var book = books[i];
+
+                    var progress = (1 - book.chapter / book.num_chapters) * 100;
+
                     if($('#'+book.id).length == 0){
-                        list += '<li class="table-view-cell media" id="'+book.id+'"><a data-title="'+book.title+'" class="navigate-right" href="'+book.id+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.author+'</p></div></a></li>';
+                        list += '<li class="table-view-cell media" id="'+book.id+'"><a data-title="'+book.title+'" class="navigate-right" href="'+book.id+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.author+'</p></div></a><div class="book-read-percent" style="transform: translate3d(-'+progress+'%, 0, 0);"></div></li>';
                     }
 
                 }
@@ -143,7 +135,7 @@ var loadBooks = function(update){
     });
 
 
-
+    return ret;
 };
 
 var addDeleteLinks = function(){
@@ -164,20 +156,130 @@ var addDeleteLinks = function(){
     });
 };
 
+
+var showNewBooks = function(bks){
+    navigator.mozL10n.ready( function() {
+
+        //console.log(navigator.mozL10n.language.code);
+        var lang = navigator.mozL10n.language.code.substr(0,2);
+        var url = 'http://www.feedbooks.com/books/top.atom?lang='+lang;
+        console.log(url);
+
+
+
+        OPDS.access(url, function(catalog){
+//                console.log(catalog);
+            var content = '';
+//                var def = _.Deferred();
+
+            _.each(catalog.entries, function(entry){
+                var bookExists = _.find(bks, function(b){
+                    return b.title == entry.title;
+                });
+                var cl = 'navigate-right';
+                if(bookExists){
+                    cl = 'check-right';
+                }
+
+                //                        console.log('entry', entry.title, entry);
+                var epubLink = _.find(entry.links, function(link){
+                    return link.rel == 'http://opds-spec.org/acquisition' && link.type == 'application/epub+zip';
+                });
+                if(epubLink) {
+                    var thumbnail = _.find(entry.links, function(link){
+                        return link.rel == 'http://opds-spec.org/image/thumbnail';
+                    });
+//                        console.log(thumbnail);
+                    content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
+                }
+
+            });
+            $('#add-book-list').html(content);
+
+            //get Next page link
+
+            var getNextPage = function(catalog){
+                var ret = _.Deferred();
+//                    console.log('getting next page for', catalog);
+                var nextLink = _.find(catalog.links, function(link){
+                    return (link.rel == 'next');
+                });
+
+                var nextContent = '';
+                nextLink.navigate(function(feed){
+//                        console.log('feed', feed);
+
+                    _.each(feed.entries, function(entry){
+                        var bookExists = _.find(bks, function(b){
+                            return b.title == entry.title;
+                        });
+                        var cl = 'navigate-right';
+                        if(bookExists){
+                            cl = 'check-right';
+                        }
+
+                        var epubLink = _.find(entry.links, function(link){
+                            return link.rel == 'http://opds-spec.org/acquisition' && link.type == 'application/epub+zip';
+                        });
+                        if(epubLink) {
+                            var thumbnail = _.find(entry.links, function(link){
+                                return link.rel == 'http://opds-spec.org/image/thumbnail';
+                            });
+//                                console.log(thumbnail);
+                            nextContent += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
+                        }
+
+                    });
+                    $('#add-book-list').append(nextContent+'<a href="#" class="btn btn-block next-page">Next</a>');
+                    $('#add-book-list').on('click', '.next-page', function(e){
+                        e.preventDefault();
+                        $('#add-book-list').off('click', '.next-page');
+                        $('.next-page').addClass('removing').on('transitionend', function(){
+                            $(this).remove();
+
+                        });
+                        nextContent = '';
+                        getNextPage(feed).done(function(){
+
+
+                        });
+                    });
+                    ret.resolve();
+                });
+                return ret;
+            };
+            getNextPage(catalog);
+
+
+
+        }, new OPDS.Support.MyBrowser());
+    });
+};
+
 (function(){
     asyncStorage.getItem('reading', function(reading){
         if(reading) {
             showBook(reading).done(function(){
                 removeHider();
+                setTimeout(function(){
+                    loadBooks().done(function(bks){
+                        showNewBooks(bks)
+                    });
+                }, 5000);
+
             });
 
         } else {
-            removeHider();
+
+            loadBooks().done(function(bks){
+                removeHider();
+                showNewBooks(bks)
+            });
+
         }
 
     });
 
-    loadBooks();
     $('.bar, .no-books').on('click', 'a', function(e){
         e.preventDefault();
         var target = e.currentTarget;
@@ -194,14 +296,15 @@ var addDeleteLinks = function(){
     }).on('click','a.chapter', function(e){
         e.preventDefault();
         var add = -1;
-        if(e.currentTarget.getAttribute('id') == 'next-chapter') {
-            add = 1;
-        }
         var rb = $('#read-book');
-
         rb.find('.book-content').html('');
         rb.find('.loading').show();
         rb.find('.chapter').removeClass('hidden');
+        if(e.currentTarget.getAttribute('id') == 'next-chapter') {
+            add = 1;
+        }
+
+
         var curChapter = parseInt(rb.data('chapter'));
         //console.log('current chapter', curChapter);
         var nextChapter = curChapter + add;
@@ -220,14 +323,18 @@ var addDeleteLinks = function(){
         asyncStorage.getItem('book_'+rb.data('reading')+'_chapters_'+nextChapter, function(chapter){
             var bc = rb.find('.book-content');
             bc.html(chapter);
-            updateImagesForChapter(bc, nextChapter, rb.data('reading-path'), rb.data('reading'));
+            //updateImagesForChapter(bc, nextChapter, rb.data('reading-path'), rb.data('reading'));
             rb.find('.loading').hide();
 
             rb.data('chapter', nextChapter);
 
+            var progress = (1 - nextChapter/rb.data('num-chapters')) * 100;
+
+            $('#'+rb.data('reading')).find('.book-read-percent').css({'transform': 'translate3d(-'+progress+'%, 0, 0)'});
             rb.find('.content').get(0).scrollTop = 0;
+            updateBook(rb.data('reading'), {chapter: nextChapter});
         });
-        updateBook(rb.data('reading'), {chapter: nextChapter});
+
 
     });
 
@@ -242,11 +349,16 @@ var addDeleteLinks = function(){
         var bookId = rb.data('reading');
         var chapter = rb.data('chapter');
         var scrl = rb.find('.content').get(0).scrollTop;
+        $('#read-book-bar').removeClass('hidden');
         //console.log('scroll position is ', scrl);
         asyncStorage.setItem('reading', false);
+        rb.find('.book-content').empty();
+
+
+
         updateBook(bookId, {scroll: scrl, chapter: chapter});
 
-        rb.find('.book-content').empty();
+
 
     }).on('click', 'a', function(){
         if(ta) clearTimeout(ta);
@@ -400,62 +512,64 @@ var addDeleteLinks = function(){
                     var name = this.result;
 //                    console.log('File "' + name + '" successfully wrote on the sdcard storage area');
 
-
-
                     if(blob && (blob.type == 'application/epub+zip'|| fname.substr(fname.length - 4) == 'epub')) {
-                        var reader = new FileReader();
-                        reader.readAsBinaryString(blob);
-                        reader.onload = function(e){
+                        var epub = new JSEpub(blob);
 
-                            var epub = new JSEpub(e.target.result);
+                        var bookId;
 
-                            epub.processInSteps(function (step, extras) {
+                        epub.processInSteps(function (step, extras) {
 
-                                if (step === 4) {
-                                    showFirstPage(epub).done(function(book) {
-                                        book.path = name;
-                                        asyncStorage.getItem('books', function(books) {
+                            if (step === 4) {
+                                showFirstPage(epub).done(function(book) {
+                                    book.path = name;
+                                    bookId = book.id;
+                                    $('#'+bookId).prepend('<div class="book-loader"></div>');
+                                    asyncStorage.getItem('books', function(books) {
 
-                                            if(!books) {
-                                                books = [];
-                                            }
-                                            books.push(book);
-                                            //console.log(book, books);
+                                        if(!books) {
+                                            books = [];
+                                        }
+                                        books.push(book);
+                                        //console.log(book, books);
 
-                                            asyncStorage.setItem('books', books, function(){
-                                                //console.log(book.title + ' was added to your library');
-
-                                                book = null;
-                                            });
+                                        asyncStorage.setItem('books', _.uniq(books));
 
 
-                                        });
-
-                                        asyncStorage.getItem('savedBooksIds', function(savedBooksIds){
-                                            if(!savedBooksIds) {
-                                                savedBooksIds = [];
-                                            }
-                                            savedBooksIds.push(fname);
-                                            asyncStorage.setItem('savedBooksIds', savedBooksIds);
-                                        });
                                     });
 
-                                } else if(step===5){
-
-
-                                    $e.find('.book-loader').css({'transform': 'translate3d(0, 0, 0)'}).addClass('removing').on('transitionend', function(){
-                                        $e.removeClass('navigate-right').addClass('check-right');
-
-                                        $(this).remove();
+                                    asyncStorage.getItem('savedBooksIds', function(savedBooksIds){
+                                        if(!savedBooksIds) {
+                                            savedBooksIds = [];
+                                        }
+                                        savedBooksIds.push(fname);
+                                        asyncStorage.setItem('savedBooksIds', savedBooksIds);
                                     });
-                                } else if(step===6){
-                                    console.log('progress', extras);
-                                    var p = 50 - extras.progress/2;
-                                    $e.find('.book-loader').css({'transform': 'translate3d(-'+p+'%, 0, 0)'});
-                                }
-                            });
+                                });
 
-                        };
+                            } else if(step===5){
+
+                                //TODO add navigate-right class to book on book list
+                                $('#'+bookId).find('.book-loader').css({'transform': 'translate3d(0, 0, 0)'}).addClass('removing').on('transitionend', function(){
+                                    $('#'+bookId).addClass('navigate-right');
+
+                                    $(this).remove();
+                                });
+                                $e.find('.book-loader').css({'transform': 'translate3d(0, 0, 0)'}).addClass('removing').on('transitionend', function(){
+                                    $e.removeClass('navigate-right').addClass('check-right');
+
+                                    $(this).remove();
+                                });
+                            } else if(step===6){
+                                console.log('progress', extras);
+                                var p = 50 - extras.progress/2;
+                                var p2 = 95 - extras.progress;
+                                //TODO show progress on book list
+                                $e.find('.book-loader').css({'transform': 'translate3d(-'+p+'%, 0, 0)'});
+                                $('#'+bookId).find('.book-loader').css({'transform': 'translate3d(-'+p2+'%, 0, 0)'});
+                            }
+                        });
+
+
 
                     }
 
@@ -505,105 +619,6 @@ var addDeleteLinks = function(){
         }else {
             asyncStorage.setItem('reading', false);
         }
-    });
-
-    asyncStorage.getItem('books', function(books) {
-        navigator.mozL10n.ready( function() {
-
-            //console.log(navigator.mozL10n.language.code);
-            var lang = navigator.mozL10n.language.code.substr(0,2);
-            var url = 'http://www.feedbooks.com/books/top.atom?lang='+lang;
-            console.log(url);
-
-
-
-            OPDS.access(url, function(catalog){
-//                console.log(catalog);
-                var content = '';
-//                var def = _.Deferred();
-
-                _.each(catalog.entries, function(entry){
-                    var bookExists = _.find(books, function(b){
-                        return b.title == entry.title;
-                    });
-                    var cl = 'navigate-right';
-                    if(bookExists){
-                        cl = 'check-right';
-                    }
-
-                    //                        console.log('entry', entry.title, entry);
-                    var epubLink = _.find(entry.links, function(link){
-                        return link.rel == 'http://opds-spec.org/acquisition' && link.type == 'application/epub+zip';
-                    });
-                    if(epubLink) {
-                        var thumbnail = _.find(entry.links, function(link){
-                            return link.rel == 'http://opds-spec.org/image/thumbnail';
-                        });
-//                        console.log(thumbnail);
-                        content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
-                    }
-
-                });
-                $('#add-book-list').html(content);
-
-                //get Next page link
-
-                var getNextPage = function(catalog){
-                    var ret = _.Deferred();
-//                    console.log('getting next page for', catalog);
-                    var nextLink = _.find(catalog.links, function(link){
-                        return (link.rel == 'next');
-                    });
-
-                    var nextContent = '';
-                    nextLink.navigate(function(feed){
-//                        console.log('feed', feed);
-
-                        _.each(feed.entries, function(entry){
-                            var bookExists = _.find(books, function(b){
-                                return b.title == entry.title;
-                            });
-                            var cl = 'navigate-right';
-                            if(bookExists){
-                                cl = 'check-right';
-                            }
-
-                            var epubLink = _.find(entry.links, function(link){
-                                return link.rel == 'http://opds-spec.org/acquisition' && link.type == 'application/epub+zip';
-                            });
-                            if(epubLink) {
-                                var thumbnail = _.find(entry.links, function(link){
-                                    return link.rel == 'http://opds-spec.org/image/thumbnail';
-                                });
-//                                console.log(thumbnail);
-                                nextContent += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
-                            }
-
-                        });
-                        $('#add-book-list').append(nextContent+'<a href="#" class="btn btn-block next-page">Next</a>');
-                        $('#add-book-list').on('click', '.next-page', function(e){
-                            e.preventDefault();
-                            $('#add-book-list').off('click', '.next-page');
-                            $('.next-page').addClass('removing').on('transitionend', function(){
-                                $(this).remove();
-
-                            });
-                            nextContent = '';
-                            getNextPage(feed).done(function(){
-
-
-                            });
-                        });
-                        ret.resolve();
-                    });
-                    return ret;
-                };
-                getNextPage(catalog);
-
-
-
-            }, new OPDS.Support.MyBrowser());
-        });
     });
 
     $('#find-books').on('submit', function(e){
