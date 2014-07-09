@@ -59,13 +59,6 @@ var showBook = function(id) {
 var loadBooks = function(update){
 
     var ret = _.Deferred();
-    //TODO get/save to asyncStorage and only update when necessary
-
-    //TODO Make everything async
-
-    //TODO save html by chapters and in separate store
-
-
 
     $('#index').find('.loading').show();
     asyncStorage.getItem('books', function(books) {
@@ -80,7 +73,7 @@ var loadBooks = function(update){
             $('#index').find('.content').prepend('<ul class="table-view" id="book-list"></ul>');
         }
 
-        if(update || books.length === 0) {
+        if(update || books.length == 0) {
             //$('.loading').hide();
             $('#read-book').find('.book-content').html('');
             Suvato.progress('Updating ebook database');
@@ -96,7 +89,6 @@ var loadBooks = function(update){
 
                 $('#index').find('.title').text(books.length+ ' eBooks');
 
-                var list = '';
                 for(var i=0;i<books.length;i++) {
                     var book = books[i];
 
@@ -127,34 +119,14 @@ var loadBooks = function(update){
     return ret;
 };
 
-var addDeleteLinks = function(){
-//    $('#book-list').find('li').prepend('<a href="#" class="delete-book"><span class="icon icon-trash"></span></a>')
-    $('#book-list').on('click', 'a.delete-book', function(e){
-        e.preventDefault();
-        var $el = $(e.currentTarget);
-//        if(confirm('Delete this book from your SD card?')){
-        //TODO delete book from sdcard and catalog
-        var $li = $el.parent();
-        var bookId = $li.attr('id');
-
-        $li.addClass('removing');
-        deleteBook(bookId).done(function(){
-            $li.remove();
-        });
-//        }
-    });
-};
 
 
 var showNewBooks = function(bks){
-    navigator.mozL10n.ready( function() {
+    document.webL10n.ready( function() {
 
-        //console.log(navigator.mozL10n.language.code);
-        var lang = navigator.mozL10n.language.code.substr(0,2);
+        var lang = document.webL10n.getLanguage();
         var url = 'http://www.feedbooks.com/books/top.atom?lang='+lang;
         console.log(url);
-
-
 
         OPDS.access(url, function(catalog){
 //                console.log(catalog);
@@ -682,7 +654,11 @@ var showNewBooks = function(bks){
 
     $(document).on('click', 'a[href="^http"]', function(e){
         window.open(e.currentTarget.href);
-    })
+    });
+
+    document.webL10n.ready( function() {
+        document.getElementById('search').placeholder = document.webL10n.get('search');
+    });
 
 })();
 

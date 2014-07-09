@@ -599,14 +599,14 @@ OPDS.Support.MyBrowser = OPDS.Support.Browser.$extend({
                     callback.apply(browser, [browser]);
                 },
                 headers: {
-                    "Accept-Language": navigator.mozL10n.language.code.substr(0,2)+','+navigator.mozL10n.language.code.toLowerCase()+';q=0.8'
+                    "Accept-Language": document.webL10n.getLanguage().substr(0,2)+','+document.webL10n.getLanguage().toLowerCase()+';q=0.8'
                 }
             });
 
 
 
         } catch (e) {
-            if (jQuery.browser.msie && window.XDomainRequest) {
+            if ($.browser.msie && window.XDomainRequest) {
                 var xdr = new XDomainRequest();
                 xdr.open("get", url);
                 xdr.onload = function(){
@@ -618,13 +618,13 @@ OPDS.Support.MyBrowser = OPDS.Support.Browser.$extend({
                     browser.lastResponse = this;
                     browser.lastResponse.status = -1;
                     callback.apply(browser, [browser]);
-                }
+                };
                 xdr.send();
             } else {
                 alert("Your browser is unable to load crossdomain requests!");
             }
         }
-    },
+    }
 });
 
 /**
