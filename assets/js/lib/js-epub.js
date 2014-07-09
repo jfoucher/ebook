@@ -1,209 +1,33 @@
 (function (GLOBAL) {
     var JSEpub = function (blob) {
         this.blob = blob;
-//        this.unzipper = new JSUnzip(blob);
         this.entries = null;
-
-
-
-
     };
 
     GLOBAL.JSEpub = JSEpub;
 
     JSEpub.prototype = {
 
-
-        inflate: function(blob) {
-            return JSInflate.inflate(blob);
-        },
-
-        // None-blocking processing of the EPUB. The notifier callback will
-        // get called with a number and a optional info parameter on various
-        // steps of the processing:
-        //
-        //  1: Unzipping
-        //  2: Uncompressing file. File name passed as 2nd argument.
-        //  3: Reading OPF
-        //  4: Post processing
-        //  5: Finished!
-        //
-        // Error codes:
-        //  -1: File is not a proper Zip file.
-        processInSteps: function (notifier) {
-            var self = this;
-            notifier(1);
+        getEntries: function(){
             var def = _.Deferred();
-            // use a BlobReader to read the zip from a Blob object
-            zip.createReader(new zip.BlobReader(this.blob), function(reader) {
+            var self = this;
+            if(this.entries) {
+                def.resolve();
+            } else {
+                zip.createReader(new zip.BlobReader(this.blob), function(reader) {
 
-                // get all entries from the zip
-                reader.getEntries(function(entries) {
-                    console.log('entries', entries);
-                    if (entries.length) {
-
-                        console.log(entries);
-
-                        //get Opf
-
+                    // get all entries from the zip
+                    reader.getEntries(function(entries) {
                         self.entries = entries;
+                        def.resolve();
 
-                        notifier(3);
-
-                        console.log('will get opf');
-
-                        try{
-                            self.getOpf().done(function(opf){
-
-//                setTimeout(function(){
-                                self.opf = opf;
-                                self.getMimetype().done(function(){
-                                    def.resolve();
-                                    notifier(4);
-
-                                });
-//                }, 150);
-                                console.log('Got book opf data');
-
-                            });
-
-                        } catch(e){
-                            def.reject();
-                        }
-
-
-                        notifier(2, entries);
-
-                        // get first entry content as text
-
-                    }
-                });
-            }, function(error) {
-                // onerror callback
-            });
-
-
-
-
-
-            //Got OPF data, can display book
-            def.done(function(){
-                var p = self.postProcess();
-                p.progress(function(extras){
-                    notifier(6, extras);
-                });
-                p.done(function(){
-                    notifier(5);
-                    self.ret = null;
-                });
-            }).fail(function(){
-                notifier(-1);
-            });
-
-
-//            this.unzipBlob(notifier).done(function(){
-//                self.uncompressNextCompressedFile(notifier);
-//            });
-
-
-
-            // When all files are decompressed, uncompressNextCompressedFile
-            // will continue with the next step.
-        },
-
-        unzipBlob: function (notifier) {
-//            var ret = _.Deferred();
-//            var unzipper = this.unzipper(this.blob);
-//            if (!unzipper.isZipFile()) {
-//                notifier(-1);
-//                ret.reject();
-//            }
-//
-//            var self = this;
-//
-//            unzipper.readEntries().done(function(entries){
-//                console.log('zip file read', entries);
-//                self.files = entries;
-//                ret.resolve();
-//            });
-//
-//            return ret;
-        },
-
-        uncompressNextCompressedFile: function (notifier) {
-            var self = this;
-
-            var ind = this.files.shift();
-            console.log('getting data for', ind);
-            if(ind) {
-                asyncStorage.getItem(ind, function(fileData){
-//                    console.log('compressed file', fileData);
-                    if (fileData) {
-                        notifier(2, ind);
-                        if (ind === "META-INF/container.xml") {
-                            self.container = fileData;
-                        } else if (ind === "mimetype") {
-                            self.mimetype = fileData;
-                        }
-
-                        self.uncompressNextCompressedFile(notifier);
-                        fileData = null;
-                    } else {
-                        self.didUncompressAllFiles(notifier);
-
-                    }
-                });
-            }else {
-                self.didUncompressAllFiles(notifier);
+                    });
+                }, function(){def.resolve()});
             }
 
+            return def;
 
 
-        },
-
-
-        didUncompressAllFiles: function (notifier) {
-            console.log("did uncompress all files");
-            notifier(3);
-            this.opfPath = this.getOpfPathFromContainer();
-            var self = this;
-            asyncStorage.getItem(this.opfPath, function(data){
-
-                self.readOpf(data);
-                notifier(4);
-                self.postProcess();
-                notifier(5);
-            });
-//            this.readOpf(this.files[this.opfPath]);
-
-
-        },
-
-        uncompressFile: function (compressedFile) {
-            var ret = _.Deferred();
-            var data;
-            if (compressedFile.compressionMethod === 0) {
-                data = compressedFile.data;
-            } else if (compressedFile.compressionMethod === 8) {
-                data = this.inflate(compressedFile.data);
-            } else {
-                throw new Error("Unknown compression method "
-                                + compressedFile.compressionMethod 
-                                + " encountered.");
-            }
-
-            if (compressedFile.fileName === "META-INF/container.xml") {
-                this.container = data;
-            } else if (compressedFile.fileName === "mimetype") {
-                this.mimetype = data;
-            } else {
-                //console.log('uncompressed file', compressedFile.fileName, data);
-                asyncStorage.setItem(compressedFile.fileName, data, function(){
-                    ret.resolve();
-                })
-            }
-
-            return ret;
         },
 
         getOpfPathFromContainer: function () {
@@ -218,26 +42,31 @@
             var ret = _.Deferred();
             var self = this;
 
-            var container = _.find(this.entries, function(entry){
-                return entry.filename == 'META-INF/container.xml'
-            });
-
-            container.getData(new zip.TextWriter(), function(text) {
-                // text contains the entry data as a String
-                self.container = text;
-                self.opfPath = self.getOpfPathFromContainer();
-
-                var opfFile = _.find(self.entries, function(entry){
-                    return entry.filename == self.opfPath
+            this.getEntries().done(function(){
+                var container = _.find(self.entries, function(entry){
+                    return entry.filename == 'META-INF/container.xml'
                 });
 
-                opfFile.getData(new zip.TextWriter(), function(text) {
-                    ret.resolve(self.readOpf(text));
-                })
+                container.getData(new zip.TextWriter(), function(text) {
+                    // text contains the entry data as a String
+                    self.container = text;
+                    self.opfPath = self.getOpfPathFromContainer();
 
-            }, function(current, total) {
-                // onprogress callback
+                    var opfFile = _.find(self.entries, function(entry){
+                        return entry.filename == self.opfPath
+                    });
+
+                    opfFile.getData(new zip.TextWriter(), function(text) {
+                        self.opf = self.readOpf(text);
+                        ret.resolve();
+                    })
+
+                }, function(current, total) {
+                    // onprogress callback
+                });
+
             });
+
 
             return ret;
 
@@ -253,7 +82,7 @@
             });
 
             mime.getData(new zip.TextWriter(), function(text) {
-                console.log('mimetype', text);
+//                console.log('mimetype', text);
                 ret.resolve(text);
             });
 
@@ -350,7 +179,7 @@
             return match && "image/" + match[1];
         },
 
-        saveChapter: function(num){
+        saveChapter: function(num) {
 
             var progress = (num / this.opf.spine.length) * 100;
 
@@ -382,7 +211,7 @@
                                 self.saveChapter(num+1);
 
                             } else {
-                                self.ret.resolve();
+                                self.ret.resolve(self.bookId);
 
                             }
 
@@ -411,41 +240,16 @@
         },
 
 
-        getCoverImage: function(path){
+        getCoverImage: function(path, contentType){
             var ret = _.Deferred();
 
             var mime = _.find(this.entries, function(entry){
                 return entry.filename == path;
             });
 
-            mime.getData(new zip.Data64URIWriter(), function(text) {
+            mime.getData(new zip.Data64URIWriter(contentType), function(text) {
                 ret.resolve(text);
             });
-
-            return ret;
-        },
-
-        postProcessCSS: function (href) {
-            var ret = _.Deferred();
-            var self = this;
-
-            asyncStorage.getItem(href, function(file, hr){
-                file = file.replace(/url\((.*?)\)/gi, function (str, url) {
-                    //return str;
-                    if (/^data/i.test(url)) {
-                        // Don't replace data strings
-                        return str;
-                    } else {
-                        var dataUri = self.getDataUri(url, hr);
-                        return "url(" + dataUri + ")";
-                    }
-                });
-                asyncStorage.setItem(hr, file, function(){
-                    ret.resolve(file);
-                });
-
-            });
-
 
 
             return ret;
@@ -460,7 +264,7 @@
             //TODO find a way to get images
             var images = doc.getElementsByTagName("img");
 
-            console.log(images.length+' images in this html');
+//            console.log(images.length+' images in this html');
             if(images.length){
                 var setImageUri = function(n){
                     var image = images[n];
@@ -512,15 +316,15 @@
             });
 
             img.getData(new zip.Data64URIWriter(), function(data){
-                console.log('got image data for '+dataHref);
+//                console.log('got image data for '+dataHref);
                 var image = new Image();
                 image.onload = function(){
 
-                    var canvas = document.getElementById('imageCanvas');
+                    var canvas = document.createElement('canvas');
 
 
-                    console.log('getdataUri image loaded', image.height, image.width);
-                    console.log('max img width', maxImgWidth);
+//                    console.log('getdataUri image loaded', image.height, image.width);
+//                    console.log('max img width', maxImgWidth);
 
                     if(image.width > maxImgWidth) {
                         image.height *= maxImgWidth / image.width;
@@ -538,7 +342,8 @@
 
                     canvas = null;
                     ctx = null;
-
+                    image = null;
+                    img = null;
                     ret.resolve(smallImageData);
                 };
 
@@ -549,24 +354,6 @@
             return ret;
         },
 
-        validate: function () {
-            if (this.container === undefined) {
-                throw new Error("META-INF/container.xml file not found.");
-            }
-
-            if (this.mimetype === undefined) {
-                throw new Error("Mimetype file not found.");
-            }
-
-            if (this.mimetype !== "application/epub+zip") {
-                throw new Error("Incorrect mimetype " + this.mimetype);
-            }
-        },
-
-        // for data URIs
-        escapeData: function (data) {
-            return escape(data);
-        },
 
         xmlDocument: function (xml) {
 

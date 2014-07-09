@@ -81,7 +81,7 @@ this.asyncStorage = (function() {
   function getItem(key, callback) {
     var req;
       var d = Date.now();
-      console.log('Getting item '+key);
+//      console.log('Getting item '+key);
     withStore('readonly', function getItemBody(store) {
       req = store.get(key);
       req.onerror = function getItemOnError() {
@@ -93,14 +93,14 @@ this.asyncStorage = (function() {
         value = null;
       }
         var t = Date.now() - d;
-        console.log('Got item ' + key+' in '+t+' ms');
+//        console.log('Got item ' + key+' in '+t+' ms');
       callback(value, key);
     });
   }
 
   function setItem(key, value, callback) {
       var d = Date.now();
-      console.log('Setting item '+key);
+//      console.log('Setting item '+key);
     withStore('readwrite', function setItemBody(store) {
       var req = store.put(value, key);
       req.onerror = function setItemOnError() {

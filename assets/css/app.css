@@ -424,7 +424,10 @@ a:not([href]) {
     margin: 1rem 5%;
     width: 90%;
 }
-canvas {
+#imageCanvas {
+    z-index: -1;
+    position: relative;
+    visibility: hidden;
 
     image-rendering: crisp-edges;
 

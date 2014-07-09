@@ -2,38 +2,6 @@ var hashCode = function(s){
     return s.split("").reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
 };
 
-var base64encode = function (input) {
-    var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-    var output = "";
-    var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
-    var i = 0;
-
-
-    while (i < input.length) {
-
-        chr1 = input.charCodeAt(i++);
-        chr2 = input.charCodeAt(i++);
-        chr3 = input.charCodeAt(i++);
-
-        enc1 = chr1 >> 2;
-        enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-        enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
-        enc4 = chr3 & 63;
-
-        if (isNaN(chr2)) {
-            enc3 = enc4 = 64;
-        } else if (isNaN(chr3)) {
-            enc4 = 64;
-        }
-
-        output = output +
-            keyStr.charAt(enc1) + keyStr.charAt(enc2) +
-            keyStr.charAt(enc3) + keyStr.charAt(enc4);
-
-    }
-
-    return output;
-};
 
 var findBook = function(id){
     var ret = _.Deferred();
@@ -122,7 +90,7 @@ var getCoverPageUrl = function(opf, initialValue, step) {
         && typeof opf.manifest[coverpageUrl].href !== 'undefined'
         && (opf.manifest[coverpageUrl].href.indexOf('.jpg') !== false || opf.manifest[coverpageUrl].href.indexOf('.png') !== false || opf.manifest[coverpageUrl].href.indexOf('.gif') !== false)
         ){
-        console.log('success with '+initialValue, opf.manifest[coverpageUrl]);
+//        console.log('success with '+initialValue, opf.manifest[coverpageUrl]);
         return coverpageUrl;
     }
 
@@ -131,8 +99,6 @@ var getCoverPageUrl = function(opf, initialValue, step) {
     return coverpageUrl;
 
 };
-
-
 
 var showFirstPage = function (epub) {
     if(!$('#book-list').length) {
@@ -143,9 +109,6 @@ var showFirstPage = function (epub) {
 
     var num = epub.opf.spine.length;
     var bookId = epub.bookId;
-    console.log('EPUB', epub);
-    var ret = _.Deferred();
-    var coverpageUrl = getCoverPageUrl(epub.opf, epub.opf.metadata.meta.content, 0);
 
     var book = {
         id: bookId,
@@ -159,88 +122,14 @@ var showFirstPage = function (epub) {
     };
 //            canvas = null;
 //            ctx = null;
-    console.log('book', book);
+//    console.log('book', book);
     //console.log('small image data', smallImageData);
     if($('#'+bookId).length == 0){
-        console.log('adding line');
+//        console.log('adding line');
         $('#book-list').append('<li class="table-view-cell media" id="'+bookId+'"><a href="#" class="delete-book"><span class="icon icon-trash"></span></a><a data-title="'+book.title+'" class="" href="'+bookId+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.author+'</p></div></a></li>');
     }
 
-//    ret.resolve(book);
-
-
-    epub.getCoverImage(epub.opf.manifest[coverpageUrl].href).done(function(imageData){
-
-        console.log('image data length', imageData.length);
-
-        if(imageData.length < 2000000) {
-            var image = new Image();
-
-            image.onload = function(){
-
-                console.log('image loaded', image.height, image.width);
-                var canvas = document.getElementById('imageCanvas');
-
-
-                var ctx = canvas.getContext("2d");
-                ctx.imageSmoothingEnabled = false;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                if(image.width > 84) {
-                    image.height *= 84 / image.width;
-                    image.width = 84;
-                }
-
-                canvas.width = image.width;
-                canvas.height = image.height;
-
-                ctx.drawImage(image, 0, 0, image.width, image.height);
-
-                book.cover = canvas.toDataURL("image/jpg");
-                ret.resolve(book);
-                $('#'+bookId).find('img.media-object').attr('src', book.cover);
-
-            };
-            image.src = imageData;
-
-        } else {
-//            imgSrc = 'data:'+epub.opf.manifest[coverpageUrl]['media-type']+';base64,'+btoa(imageData);
-            book.cover = imageData;
-            $('#'+bookId).find('img.media-object').attr('src', imageData);
-            ret.resolve(book);
-        }
-
-
-
-
-    }).fail(function(){
-        ret.resolve(book);
-    });
-
-
-
-
-//
-//    } catch(e){
-//        var book = {
-//            id: bookId,
-//            title: epub.opf.metadata['dc:title']._text,
-//            cover: coverImage,
-//            author: epub.opf.metadata['dc:creator']._text,
-//            chapter: 0,
-//            num_chapters: num,
-//            scroll: 0
-//        };
-//
-//        console.log('failed book', book);
-        //console.log('small image data', smallImageData);
-
-
-//        ret.resolve(book);
-//        console.log(e);
-//    }
-
-    return ret;
-
+    return book;
 };
 
 
@@ -255,7 +144,7 @@ var getFilesToUpdate = function(){
         if(!result) {
             result = [];
         }
-        console.log('saved books ids', result);
+//        console.log('saved books ids', result);
         var sdcard = navigator.getDeviceStorage('sdcard');
         var cursor = sdcard.enumerate();
         var files = [];
@@ -290,130 +179,77 @@ var getFilesToUpdate = function(){
     return ret;
 };
 
-var createBookFromFile = function(file) {
+
+var getBookCover = function(epub) {
     var ret = _.Deferred();
+    var bookId = epub.bookId;
+    var coverpageUrl = getCoverPageUrl(epub.opf, epub.opf.metadata.meta.content, 0);
+    epub.getCoverImage(epub.opf.manifest[coverpageUrl].href, epub.opf.manifest[coverpageUrl]['media-type']).done(function(imageData){
+//        console.log(imageData);
+//        console.log('image data length', imageData.length);
+
+        if(imageData.length < 2000000) {
+            var image = new Image();
+
+            image.onload = function(){
+
+//                console.log('image loaded', image.height, image.width);
+
+                var canvas = document.createElement('canvas');
+
+                var ctx = canvas.getContext("2d");
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if(image.width > 84) {
+                    image.height *= 84 / image.width;
+                    image.width = 84;
+                }
+
+                canvas.width = image.width;
+                canvas.height = image.height;
+
+                ctx.drawImage(image, 0, 0, image.width, image.height);
+
+                var cover = canvas.toDataURL(epub.opf.manifest[coverpageUrl]['media-type']);
+                ret.resolve(cover);
+                $('#'+bookId).find('img.media-object').attr('src', cover);
+                imageData = null;
+                ctx = null;
+                canvas = null;
+                image = null;
+            };
+            image.src = imageData;
+
+        } else {
+            $('#'+bookId).find('img.media-object').attr('src', imageData);
+            ret.resolve(imageData);
+        }
+
+
+    }).fail(function(){
+        ret.resolve(book);
+    });
+    return ret;
+
+};
+
+
+var displayBookLine = function(file) {
     var bookPath = file.path + file.name;
     var epub = new JSEpub(file);
-
-
-    var step1, step3, step4;
-    var displayed;
-    epub.processInSteps(function (step, extras) {
-
-        var msg;
-
-        if (step === 1) {
-            msg = "Unzipping "+file.name;
-            step1 = setTimeout(function(){
-                Suvato.error('Could not unzip '+file.name);
-                ret.reject();
-            }, 120000);
-//                        console.log('step1 timeout is '+step1);
-        } else if (step === 2) {
-            if(step1){
-                clearTimeout(step1);
-                step1 = null;
-            }
-
-        } else if (step === 3) {
-            msg = "Reading OPF for " +file.name;
-
-            if(step1){
-                clearTimeout(step1);
-                step1 = null;
-            }
-
-            step3 = setTimeout(function(){
-                Suvato.error('Could not read metadata for '+file.name);
-                ret.reject();
-            }, 600000);
-//                        console.log('step3 timeout is '+step3);
-
-
-        } else if (step === 4) {
-//                        console.log('clearing timeout '+step3);
-            if(step3){
-                clearTimeout(step3);
-                step3 = null;
-            }
-            msg = "Post processing "+file.name;
-            step4 = setTimeout(function(){
-                Suvato.error('Could not post process '+file.name);
-                ret.reject();
-            }, 600000);
-            console.log('Got opf data, can display book ', extras);
-            displayed = showFirstPage(epub);
-            var r = _.Deferred();
-            displayed.done(function(book){
-                book.path = bookPath;
-
-                $('#'+book.id).append('<div class="book-loader start"></div>');
-
-                asyncStorage.getItem('savedBooksIds', function(result) {
-                    if(!result) {
-                        result = [];
-                    }
-                    asyncStorage.setItem('savedBooksIds', _.uniq([book.path].concat(result)));
-                });
-                asyncStorage.getItem('books', function(result){
-                    if(!result) {
-                        result = [];
-                    }
-                    asyncStorage.setItem('books', _.uniq([book].concat(result)), function(a){
-                        r.resolve();
-                        $('#index').find('.loading').hide();
-
-                    })
-                });
-
-            });
-            return r;
-
-
-        } else if (step === 5) {
-            clearTimeout(step4);
-//                Suvato.success(file.path + file.name+' is ready');
-            msg = "Finishing "+file.name;
-            var b = $('#'+epub.bookId);
-            b.find('a[data-title]').addClass('navigate-right');
-            var bl = b.find('.book-loader');
-            bl.css({'transform': 'translate3d(0, 0, 0)'})
-                .on('transitionend', function(){
-
-                    bl.off('transitionend');
-                    setTimeout(function(){
-
-                        ret.resolve();
-                        bl.addClass('removing').on('transitionend', function(){
-                            bl.remove();
-                        });
-                    }, 200);
-
-                });
-
-
-
-        } else if(step === 6) {
-            clearTimeout(step4);
-            console.log('progress', extras);
-            var p = (100 - extras.progress) * .95;
-            $('#'+extras.bookId).find('.book-loader').css({'transform': 'translate3d(-'+p+'%, 0, 0)'});
-
-        } else if(step === -1) {
-            Suvato.error(file.path + file.name+' could not be added');
-            ret.reject();
-        }
-
-        if(msg) {
-            console.log(msg);
-        }
-
-        // Render the "msg" here.
+    var ret = _.Deferred();
+    epub.getOpf().done(function(){
+        var book = showFirstPage(epub);
+        book.path = bookPath;
+        ret.resolve(epub, book);
     });
 
-
+    setTimeout(function(){
+        ret.resolve();
+    }, 5000);
 
     return ret;
+
 };
 
 
@@ -424,33 +260,125 @@ var updateDatabase = function(books){
     $('#index').find('.no-books').hide();
     var ret = _.Deferred();
     getFilesToUpdate().done(function(files){
-        var createNextBook = function(files, num){
-            createBookFromFile(files[num]).always(function(){
-                if(num >= files.length) {
 
-                    $('#index').find('.loading').hide();
-                    ret.resolve();
+        var linesDefs = [];
 
+        var coverDefs = [];
+
+        var booksDefs = [];
+
+        for(var i = 0; i<files.length;i++) {
+            var d = displayBookLine(files[i]);
+            linesDefs.push(d);
+
+
+
+            d.done(function(epub, book){
+                if(!epub){
+                    return;
                 }
+                var gbc = getBookCover(epub);
+                var booksSaved = _.Deferred();
+                coverDefs.push(booksSaved);
+
+                gbc.done(function(cover){
+//                    console.log('got cover', book);
+
+                    $('#'+book.id).append('<div class="book-loader"></div>');
+
+                    asyncStorage.setItem('bookcover-'+book.id, cover, function(){
+                        booksSaved.resolve(epub);
+                    });
+
+                    asyncStorage.getItem('savedBooksIds', function(result) {
+                        if(!result) {
+                            result = [];
+                        }
+                        asyncStorage.setItem('savedBooksIds', _.uniq([book.path].concat(result)));
+                    });
+
+                    asyncStorage.getItem('books', function(result){
+                        if(!result) {
+                            result = [];
+                        }
+                        console.log('got books', result);
+                        asyncStorage.setItem('books', _.uniq(books.concat(result)));
+                    });
+
+                });
+            })
+        }
+
+
+        _.when(linesDefs).done(function(){
+            $('#index').find('.loading').hide();
+
+            console.log('libeDefs done', linesDefs);
+
+            var books = _.map(_.reject(linesDefs, function(el){ return typeof el === 'undefined'}), function(item) {
+                return item[1];
+            });
+            var booksPath = _.map(_.reject(linesDefs, function(el){ return typeof el === 'undefined'}), function(item) {
+                return item[1].path;
+            });
+
+            console.log(books);
+
+            asyncStorage.getItem('books', function(result){
+                if(!result) {
+                    result = [];
+                }
+                console.log('got books', result);
+                asyncStorage.setItem('books', _.uniq(books.concat(result)));
+            });
+
+            asyncStorage.getItem('savedBooksIds', function(result) {
+                if(!result) {
+                    result = [];
+                }
+                asyncStorage.setItem('savedBooksIds', _.uniq(booksPath.concat(result)));
+            });
+
+
+            _.when(coverDefs).done(function(){
+
+                console.log('all covers done');
+                _.each(coverDefs, function(epub){
+                    console.log('def', epub);
+
+                    var p = epub.postProcess();
+
+                    booksDefs.push(p);
+                    p.progress(function(data){
+                        var prog = (100 - data.progress);
+                        $('#'+data.bookId).find('.book-loader').css({'transform': 'translate3d(-'+prog+'%, 0, 0)'});
+                    });
+
+                    p.done(function(id){
+                        var b = $('#'+id);
+                        b.find('a[data-title]').addClass('navigate-right');
+                        var bl = b.find('.book-loader');
+                        bl.css({'transform': 'translate3d(0, 0, 0)'}).on('transitionend', function(){
+
+                            bl.off('transitionend');
+                            setTimeout(function(){
+                                bl.addClass('removing').on('transitionend', function(){
+                                    bl.remove();
+                                });
+                            }, 200);
+
+                        });
+                    });
+                });
+                _.when(booksDefs).done(function(){
+                    ret.resolve();
+                })
 
             });
-            if(num + 1 < files.length) {
-
-                createNextBook(files, num+1);
-
-            } else {
-
-//                $('#index').find('.loading').hide();
-
-            }
-
-
-
-        };
-
-        createNextBook(files, 0);
+        });
 
     });
+
 
     return ret;
 

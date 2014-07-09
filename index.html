@@ -50,7 +50,7 @@
 
         <section id="read-book" class="pane">
             <!-- Make sure all your bars are the first things in your <body> -->
-            <footer class="bar bar-footer" id="read-book-bar">
+            <footer class="bar bar-footer" id="read-book-bar" style="z-index:100002 !important;">
                 <a data-back class="icon icon-home pull-left" href="#"></a>
                 <a style="padding-left:5px" id="prev-chapter" class="chapter icon icon-up pull-right" href="#"></a>
 
@@ -59,9 +59,8 @@
             </footer>
 
             <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
-            <div class="content">
-                <div class="book-content">
-                </div>
+            <div class="content" style="z-index:100001 !important;">
+                <div class="book-content"></div>
             </div>
         </section>
 
@@ -101,10 +100,8 @@
         </div>
     </div>
 </div>
-<canvas id="imageCanvas"></canvas>
-<!-- Include the compiled Ratchet JS -->
+
 <script src="assets/js/lib/js-epub.js"></script>
-<!--<script src="assets/js/lib/js-inflate.js"></script>-->
 <script src="assets/js/lib/zip.js"></script>
 <script src="assets/js/lib/zepto.min.js"></script>
 <script src="assets/js/lib/async_storage.js"></script>
