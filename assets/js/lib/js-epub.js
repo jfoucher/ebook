@@ -61,8 +61,6 @@
                         ret.resolve();
                     })
 
-                }, function(current, total) {
-                    // onprogress callback
                 });
 
             });

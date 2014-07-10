@@ -167,11 +167,15 @@
     animation: spin 1s infinite linear;
 }
 .right .loading {
-    left: 75%;
+    left: 50%;
     position: fixed;
     top: 50%;
     margin-top: -2.5rem;
     margin-left: -2.5rem;
+}
+
+.panes-wrapper.right #index .content, .panes-wrapper.left #read-book .content {
+    display:none;
 }
 
 #index .loading {
@@ -193,8 +197,8 @@
     font-family: Merriweather, serif;
     position: relative;
     line-height: 1.4em;
-    font-size: 1rem;
-    min-height: 100%;
+    font-size: 1em;
+    min-height: 120%;
 }
 .book-content p {
     color: #4a4a4a;
@@ -246,7 +250,15 @@
     text-transform: uppercase;
     font-size: 1.3em;
     line-height: 0em;
-    text-align: justify;
+}
+
+.book-content li p:first-of-type:first-letter, .book-content li p:first-of-type:first-line {
+    text-transform: none !important;
+    display:inline !important;
+    float:none !important;
+    font-size: 1em !important;
+    margin-right: 0 !important;
+    line-height: 1.4em;
 }
 
 .book-content .pgheader {
@@ -333,7 +345,7 @@ a:not([href]) {
 .book-read-percent {
     position:absolute;
     bottom:0;
-    height: 0.2rem;
+    height: 2px;
     left:0;
     width:100%;
     z-index:9999;

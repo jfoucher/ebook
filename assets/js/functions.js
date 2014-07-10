@@ -241,12 +241,17 @@ var displayBookLine = function(file) {
     epub.getOpf().done(function(){
         var book = showFirstPage(epub);
         book.path = bookPath;
+        console.log('got opf', epub);
         ret.resolve(epub, book);
+    }).fail(function(){
+        console.log('fail opf', epub);
+        ret.resolve();
     });
 
     setTimeout(function(){
+        console.log('fail opf timeout', epub);
         ret.resolve();
-    }, 5000);
+    }, 120000);
 
     return ret;
 
@@ -271,9 +276,13 @@ var updateDatabase = function(books){
             var d = displayBookLine(files[i]);
             linesDefs.push(d);
 
-
+            console.log('linesDefs length', linesDefs.length);
+            console.log('linedef', d);
 
             d.done(function(epub, book){
+
+                console.log('d.done', epub, book);
+
                 if(!epub){
                     return;
                 }
@@ -308,7 +317,8 @@ var updateDatabase = function(books){
                 });
             })
         }
-
+        console.log('outside loop linesDefs length', linesDefs.length);
+        console.log('outside loop linesDefs', linesDefs);
 
         _.when(linesDefs).done(function(){
             $('#index').find('.loading').hide();
@@ -322,7 +332,7 @@ var updateDatabase = function(books){
                 return item[1].path;
             });
 
-            console.log(books);
+            console.log('books found', books);
 
             asyncStorage.getItem('books', function(result){
                 if(!result) {
@@ -342,8 +352,8 @@ var updateDatabase = function(books){
 
             _.when(coverDefs).done(function(){
 
-                console.log('all covers done');
-                _.each(coverDefs, function(epub){
+                console.log('all covers done', arguments);
+                _.each(arguments, function(epub){
                     console.log('def', epub);
 
                     var p = epub.postProcess();
@@ -377,6 +387,8 @@ var updateDatabase = function(books){
             });
         });
 
+    }).fail(function(){
+        ret.reject();
     });
 
 
