@@ -1,8 +1,14 @@
+
+
 (function (GLOBAL) {
     var JSEpub = function (blob) {
         this.blob = blob;
         this.entries = null;
     };
+
+    GLOBAL.canvas = document.createElement('canvas');
+    GLOBAL.image = new Image();
+    GLOBAL.ctx = GLOBAL.canvas.getContext("2d");
 
     GLOBAL.JSEpub = JSEpub;
 
@@ -22,7 +28,10 @@
                         def.resolve();
 
                     });
-                }, function(){def.resolve()});
+                }, function(){
+                    console.error('error in zipreader');
+                    def.reject()
+                });
             }
 
             return def;
@@ -43,6 +52,7 @@
             var self = this;
 
             this.getEntries().done(function(){
+                console.log('we have entries', self.entries);
                 var container = _.find(self.entries, function(entry){
                     return entry.filename == 'META-INF/container.xml'
                 });
@@ -63,6 +73,9 @@
 
                 });
 
+            }).fail(function(){
+                console.error('coild not get entries');
+                ret.reject();
             });
 
 
@@ -198,19 +211,21 @@
                         //result = this.postProcessCSS(result);
                     } else if (mediaType === "application/xhtml+xml") {
                         //dont post process now
-
+                        console.log('post processing', href);
                         self.postProcessHTML(result, href).done(function(html){
                             //console.log('html for chapter '+num);
                             asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
                             if(num+1 < self.opf.spine.length) {
 
                                 self.ret.notify({'progress':progress, 'bookId': self.bookId});
+//                                setTimeout(function(){
+                                    self.saveChapter(num+1);
+//                                }, 400);
 
-                                self.saveChapter(num+1);
 
                             } else {
                                 self.ret.resolve(self.bookId);
-
+                                self.ret = null;
                             }
 
                         });
@@ -282,7 +297,10 @@
                             image.setAttribute("src", dataUri);
 
                             if(n+1 < images.length) {
-                                setImageUri(n+1);
+//                                setTimeout(function(){
+                                    setImageUri(n+1);
+//                                }, 300);
+
                             } else {
                                 ret.resolve(doc.querySelector('body').innerHTML);
                             }
@@ -315,37 +333,43 @@
 
             img.getData(new zip.Data64URIWriter(), function(data){
 //                console.log('got image data for '+dataHref);
-                var image = new Image();
-                image.onload = function(){
+                if(data.length > 2000000) {
+                    console.log('not resizing image', Math.round(data.length/1000)+' kB');
+                    ret.resolve(data);
+                } else {
+                    console.log('resizing image', Math.round(data.length/1000)+' kB');
+//                    var image = new Image();
 
-                    var canvas = document.createElement('canvas');
 
+                    console.log(GLOBAL.image);
 
-//                    console.log('getdataUri image loaded', image.height, image.width);
-//                    console.log('max img width', maxImgWidth);
+                    GLOBAL.image.onload = function(){
+                        GLOBAL.image.width = GLOBAL.image.naturalWidth;
+                        GLOBAL.image.height = GLOBAL.image.naturalHeight;
+//                        var canvas = document.createElement('canvas');
 
-                    if(image.width > maxImgWidth) {
-                        image.height *= maxImgWidth / image.width;
-                        image.width = maxImgWidth;
-                    } else {
-                        ret.resolve(data);
-                    }
-                    //console.log(image.height, image.width);
-                    var ctx = canvas.getContext("2d");
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    canvas.width = image.width;
-                    canvas.height = image.height;
-                    ctx.drawImage(image, 0, 0, image.width, image.height);
-                    var smallImageData = canvas.toDataURL(mediaType);
+                        if(GLOBAL.image.width > maxImgWidth) {
+                            GLOBAL.image.height *= maxImgWidth / GLOBAL.image.width;
+                            GLOBAL.image.width = maxImgWidth;
+                        } else {
+                            console.log('not resizing image', Math.round(data.length/1000)+' kB', GLOBAL.image.width, maxImgWidth);
+                            ret.resolve(data);
+                        }
+                            //console.log(image.height, image.width);
+    //                        var ctx = window.canvas.getContext("2d");
+                        GLOBAL.ctx.clearRect(0, 0, GLOBAL.canvas.width, GLOBAL.canvas.height);
+                        GLOBAL.canvas.width = GLOBAL.image.width;
+                        GLOBAL.canvas.height = GLOBAL.image.height;
+                        GLOBAL.ctx.drawImage(GLOBAL.image, 0, 0, GLOBAL.image.width, GLOBAL.image.height);
+                        console.log('resizing image', Math.round(data.length/1000)+' kB');
+                        ret.resolve(GLOBAL.canvas.toDataURL(mediaType));
+                        img = null;
 
-                    canvas = null;
-                    ctx = null;
-                    image = null;
-                    img = null;
-                    ret.resolve(smallImageData);
-                };
+                    };
 
-                image.src = data;
+                    GLOBAL.image.src = data;
+                }
+
             });
 
 

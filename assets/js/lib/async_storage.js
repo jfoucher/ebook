@@ -108,7 +108,7 @@ this.asyncStorage = (function() {
       };
     }, function(o){
         var t = Date.now() - d;
-        console.log('Set item ' + key+' in '+t+' ms');
+//        console.log('Set item ' + key+' in '+t+' ms');
         if(typeof callback === 'function') {
             callback(value, key, o);
         }
