@@ -493,7 +493,11 @@ a:not([href]) {
         width: 80%;
         transition:         width 0.3s;
     }
-    .panes-outer .panes-wrapper.two .pane:first-child .bar {
+    .modal {
+        width: 20%;
+        transform: translate3d(-100%, 0, 0);
+    }
+    .panes-outer .panes-wrapper.two .pane:first-child .bar, .modal {
         border-right: 1px solid #dedede;
     }
     .panes-outer .panes-wrapper.two .pane:first-child .bar, .panes-outer .panes-wrapper.two .pane:first-child .notification{
@@ -545,7 +549,10 @@ a:not([href]) {
 }
 
 @media (min-width: 1000px) and (max-width: 1200px) {
-
+    .modal {
+        width: 30%;
+        transform: translate3d(-100%, 0, 0);
+    }
     .panes-outer .panes-wrapper.two .pane:first-child{
         width: 30%;
         transition:         width 0.3s;
@@ -572,4 +579,5 @@ a:not([href]) {
     .book-content img {
         max-width: 100%;
     }
+
 }

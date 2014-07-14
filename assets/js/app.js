@@ -6,6 +6,7 @@
 try {
     asyncStorage.getItem('reading', function(reading){
         if(reading) {
+            $('#read-book').find('.book-content, .bar').show();
             showBook(reading).done(function(){
                 removeHider();
                 loadBooks().always(function(bks){
@@ -108,6 +109,8 @@ try {
     });
     var ta = null;
     var timer = null;
+    var dist = 0;
+    var prevDist = 0;
     $('.book-content').on('click', 'a', function(e){
         e.preventDefault();
         //Scroll to element;
@@ -120,15 +123,43 @@ try {
         $('#read-book').find('.content').get(0).scrollTop = childPos.top - parentPos.top - 20;
 
     })
-        .on('touchstart', function(){
-        //TODO Only if not scrolled to the end
+        .on('touchstart', function(e){
+            //TODO Only if not scrolled to the end
 
-        $('#read-book-bar').removeClass('hidden');
-        if(ta) clearTimeout(ta);
-        ta = setTimeout(function(){
-            $('#read-book-bar').addClass('hidden');
-        }, 4000);
-    });
+            $('#read-book-bar').removeClass('hidden');
+            if(ta) clearTimeout(ta);
+            ta = setTimeout(function(){
+                $('#read-book-bar').addClass('hidden');
+            }, 4000);
+            var bc = $('.book-content');
+            bc.data('font-size', bc.css('font-size').replace('px', ''));
+    })
+    .on('touchmove', function(e){
+            var touches = e.originalEvent.changedTouches;
+            if (touches.length == 2){
+                dist = Math.sqrt(Math.pow((touches[0].clientX - touches[1].clientX), 2) + Math.pow((touches[0].clientY - touches[1].clientY),2));
+                if(prevDist !== 0 && prevDist !== dist){
+                    var dif = dist - prevDist;
+                    var bc = $('.book-content');
+                    var fs = parseInt(bc.data('font-size'));
+                    console.log(fs, dif);
+                    if(dif > 0) {
+                        dif = dif * 10;
+                    }
+                    bc.data('font-size', fs + dif/100);
+                    console.log(bc.data('font-size'));
+                    bc[0].style.fontSize = Math.round(fs + dif/100) + 'px';
+
+
+                }
+                prevDist = dist;
+            }
+
+        }).on('touchend', function(e){
+            dist = 0;
+            prevDist = 0;
+        });
+
     $('#read-book').find('.content').on('scroll', function(e){
         //console.log(e);
         if(timer !== null) {
@@ -154,7 +185,7 @@ try {
         var li = $('#'+$el.data('id'));
         li.addClass('removing');
         deleteBook($el.data('id')).done(function(){
-            $('#read-book').find('.book-content, .title').empty();
+            $('#read-book').find('.book-content, .bar').hide();
             asyncStorage.setItem('reading', false);
             li.remove();
 
@@ -178,7 +209,7 @@ try {
         var rb = $('#read-book');
         rb.find('.title').html(target.getAttribute('data-title'));
 
-
+        rb.find('.book-content, .bar').show();
         if (rb.data('reading')) {
             var chapter = rb.data('chapter');
             var scrl = rb.find('.content').get(0).scrollTop;
@@ -328,12 +359,12 @@ try {
                             }
 
                         });
-                        console.log(content);
+
                         if(content) {
                             $('#add-book').find('.loading').hide();
-                            $('#add-book-list').append('<li class="table-view-divider">'+link.title+'</li>');
+                            $('#add-book-list').append('<li class="table-view-divider">'+link.title+'</li>'+content);
                         }
-                        $('#add-book-list').append(content);
+
 
                     });
                 }
