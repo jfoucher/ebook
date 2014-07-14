@@ -50,6 +50,7 @@
             <!-- Make sure all your bars are the first things in your <body> -->
             <footer class="bar bar-footer" id="read-book-bar" style="z-index:100002 !important;">
                 <a data-back class="icon icon-home pull-left" href="#"></a>
+                <a href="#" class="delete-book pull-left"><span class="icon icon-trash"></span></a>
                 <a style="padding-left:5px" id="prev-chapter" class="chapter icon icon-up pull-right" href="#"></a>
 
                 <a style="padding-right:15px" id="next-chapter" class="chapter icon icon-down pull-right" href="#"></a>
@@ -68,6 +69,15 @@
     <!-- Make sure all your bars are the first things in your <body> -->
     <header class="bar bar-standard">
         <form id="find-books">
+            <select id="lang">
+                <option value="fr">fr</option>
+                <option value="en">en</option>
+
+                <option value="es">es</option>
+                <option value="de">de</option>
+                <option value="it">it</option>
+                <option value="all">all</option>
+            </select>
             <input type="search" placeholder="Search" id="search">
             <!--<button class="btn btn-positive btn-block" style="width: 18%;float: right">Search</button>-->
         </form>
@@ -84,6 +94,15 @@
         <ul class="table-view" id="add-book-list">
 
         </ul>
+        <div class="loading" style="display:none">
+            <div class="spinner">
+                <!-- Mask of the quarter of circle -->
+                <div class="mask">
+                    <!-- Inner masked circle -->
+                    <div class="maskedCircle"></div>
+                </div>
+            </div>
+        </div>
 
     </div>
 </section>
@@ -101,7 +120,7 @@
 
 <script src="assets/js/lib/js-epub.js"></script>
 <script src="assets/js/lib/zip.js"></script>
-<script src="assets/js/lib/zepto.min.js"></script>
+<script src="assets/js/lib/jquery-2.1.1.min.js"></script>
 <script src="assets/js/lib/async_storage.js"></script>
 <script src="assets/js/lib/lodash.js"></script>
 <script src="assets/js/lib/underscore.deferred.js"></script>

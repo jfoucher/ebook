@@ -1,6 +1,8 @@
 
 
 (function(){
+
+
 try {
     asyncStorage.getItem('reading', function(reading){
         if(reading) {
@@ -24,6 +26,7 @@ try {
     removeHider();
     showNewBooks([]);
 }
+
 
 
     $('.bar, .no-books').on('click', 'a', function(e){
@@ -145,21 +148,24 @@ try {
     var startX;
     var currentPos = 0;
     var prevX = 0;
+    $(document).on('click', 'a.delete-book', function(e){
+        e.preventDefault();
+        var $el = $(e.currentTarget);
+        var li = $('#'+$el.data('id'));
+        li.addClass('removing');
+        deleteBook($el.data('id')).done(function(){
+            $('#read-book').find('.book-content, .title').empty();
+            asyncStorage.setItem('reading', false);
+            li.remove();
+
+        }).fail(function(){
+            li.removeClass('removing');
+        });
+
+
+    });
     $('#index')
-        .on('click', 'a.delete-book', function(e){
-            e.preventDefault();
-            var $el = $(e.currentTarget);
-            console.log('deleting '+$el.data('id'));
-            var li = $el.parent();
-            li.addClass('removing');
-            deleteBook($el.data('id')).done(function(){
-                li.remove();
-            }).fail(function(){
-                li.removeClass('removing');
-            });
 
-
-        })
         .on('click', 'a[data-title]', function(e){
         e.preventDefault();
     }).on('click', 'a.navigate-right', function(e){
@@ -185,7 +191,7 @@ try {
         asyncStorage.setItem('reading', id);
 
     }).on('touchstart', 'li', function(e){
-        var touches = e.changedTouches;
+        var touches = e.originalEvent.changedTouches;
         var $el = $(e.currentTarget);
         startX = touches[0].pageX;
         prevX = touches[0].pageX;
@@ -194,7 +200,7 @@ try {
 
     }).on('touchend', 'li', function(e){
         var $el = $(e.currentTarget);
-        var touches = e.changedTouches;
+        var touches = e.originalEvent.changedTouches;
         var moveX = - (currentPos - (touches[0].pageX - startX));
         var lis = $el.find('a[data-title]');
         lis.css({'transform': '', 'transition': 'transform 0.8s'});
@@ -210,8 +216,7 @@ try {
 
     }).on('touchmove', 'li', function(e){
         var $el = $(e.currentTarget);
-        var touches = e.changedTouches;
-
+        var touches = e.originalEvent.changedTouches;
         var moveX = - (currentPos - (touches[0].pageX - startX));
         var lis = $el.find('a[data-title]');
         if(moveX <= 0) {
@@ -239,7 +244,6 @@ try {
     })
     .on('click', 'a.new-book.navigate-right', function(e){
         createBookFromClick(e);
-
     });
 
     document.addEventListener("visibilitychange", function() {
@@ -261,34 +265,50 @@ try {
         }
     });
 
+    $('#lang').on('change', function(){
+        $('#find-books').submit();
+    });
+
     $('#find-books').on('submit', function(e){
         e.preventDefault();
         //console.log(e.currentTarget);
         var search = $('#search').val();
-        var lang = document.webL10n.getLanguage().substr(0,2);
+
+        $('#add-book-list').empty();
+        $('#add-book').find('.loading').show();
+
+
+        var lang = $('#lang').val();
+        if(!lang) {
+            lang = document.webL10n.getLanguage().substr(0,2);
+        }
         var url = 'http://www.feedbooks.com/search.atom?query='+search+'&lang='+lang;
+        if($('#lang').val() == 'all') {
+            url = 'http://www.feedbooks.com/search.atom?query='+search;
+        }
         var books = [];
         asyncStorage.getItem('books', function(b) {
             books = b;
         });
         console.log(url);
         OPDS.access(url, function(catalog){
-                console.log(catalog);
-            var content = '';
+            console.log(catalog);
+
             var booksDone = [];
             _.each(catalog.links, function(link){
+
                 //console.log('link', link);
                 if (link.title){
                     //                //console.log(link.navigate);
                     link.navigate(function(feed){
                         //                    content += '<li class="table-view-divider">'+feed.title+'</li>';
-
+                        var content = '';
                         _.each(feed.entries, function(entry){
+
                             var bookExists = _.find(books, function(b){
                                 return b.title == entry.title;
                             });
                             var cl = 'navigate-right';
-                            console.log('book exists', bookExists);
 
                             //                        //console.log('entry', entry.title, entry);
                             var epubLink = _.find(entry.links, function(link){
@@ -296,7 +316,6 @@ try {
                             });
 
                             if(bookExists){
-
                                 cl = 'check-right';
                                 epubLink = bookExists.id;
                             }
@@ -309,7 +328,13 @@ try {
                             }
 
                         });
-                        $('#add-book-list').html(content);
+                        console.log(content);
+                        if(content) {
+                            $('#add-book').find('.loading').hide();
+                            $('#add-book-list').append('<li class="table-view-divider">'+link.title+'</li>');
+                        }
+                        $('#add-book-list').append(content);
+
                     });
                 }
             });

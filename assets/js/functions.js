@@ -66,11 +66,23 @@ var deleteBook = function(id) {
         }
 
         var newBooks = _.reject(books, function(item){
-            return (item.id == id);
+
+            if(item.id == id) {
+                console.log(item);
+                if(typeof navigator.getDeviceStorage !== 'undefined') {
+                    //Delete from sd card
+                    var sdcard = navigator.getDeviceStorage('sdcard');
+                    var request = sdcard.delete(item.path);
+                    request.onsuccess = function(){
+                        console.log('file deleted');
+                    }
+                }
+                return true;
+            }
+            return false;
         });
-
-        console.log('new books', newBooks);
-
+        document.title = document.webL10n.get('app-title', {n: newBooks.length});
+        $('#index').find('.title').text(document.title);
         asyncStorage.setItem('books', newBooks, function(){
             ret.resolve();
         });
@@ -261,6 +273,10 @@ var displayBookLine = function(file) {
 var postProcessBook = function(epubs, num){
     var epub = epubs[num];
     var r = _.Deferred();
+    if(typeof epub === 'undefined') {
+        r.resolve();
+        return r;
+    }
     var p = epub.postProcess();
 
     p.progress(function(data){
@@ -290,7 +306,10 @@ var postProcessBook = function(epubs, num){
                 asyncStorage.setItem('savedBooksIds', _.uniq(booksPath.concat(result)));
             });
             console.log('got books', result);
-            asyncStorage.setItem('books', _.uniq([epub.book].concat(result)), function(){
+            var nb = _.uniq([epub.book].concat(result));
+            asyncStorage.setItem('books', nb, function(){
+                document.title = document.webL10n.get('app-title', {n: nb.length});
+                $('#index').find('.title').text(document.title);
                 if(num+1 < epubs.length) {
                     postProcessBook(epubs, num+1);
                 } else {
@@ -304,6 +323,7 @@ var postProcessBook = function(epubs, num){
 
 var updateDatabase = function(books){
 
+    Suvato.progress(document.webL10n.get('updating-database'));
     $('#index').find('.loading').show();
     $('#index').find('.no-books').hide();
     var ret = _.Deferred();
@@ -374,7 +394,14 @@ var updateDatabase = function(books){
 var showNewBooks = function(bks){
     document.webL10n.ready( function() {
 
+
+
         var lang = document.webL10n.getLanguage().substr(0,2);
+
+        //Set current system language on language dropdown
+        console.log(lang);
+        $('#lang').val(lang);
+
         var url = 'http://www.feedbooks.com/books/top.atom?lang='+lang;
         console.log(url);
         OPDS.access(url, function(catalog){
@@ -405,10 +432,12 @@ var showNewBooks = function(bks){
 
             });
             $('#add-book-list').html(content);
+            $('#add-book').find('.loading').hide();
 
             //get Next page link
 
             var getNextPage = function(catalog){
+                $('#add-book').find('.loading').show();
                 var ret = _.Deferred();
 //                    console.log('getting next page for', catalog);
                 var nextLink = _.find(catalog.links, function(link){
@@ -450,10 +479,11 @@ var showNewBooks = function(bks){
                         });
                         nextContent = '';
                         getNextPage(feed).done(function(){
-
+                            $('#add-book').find('.loading').hide();
 
                         });
                     });
+                    $('#add-book').find('.loading').hide();
                     ret.resolve();
                 });
                 return ret;
@@ -485,7 +515,7 @@ var showBook = function(id) {
         rb.find('.content').append('<div id="spinner" class="loading"><div class="spinner"><div class="mask"><div class="maskedCircle"></div></div></div></div>');
     }
     rb.find('.loading').show();
-
+    rb.find('.delete-book').data('id', id);
     rb.data('reading', id);
     $('.currently-reading').removeClass('currently-reading');
     $('#'+id).addClass('currently-reading');
@@ -576,7 +606,7 @@ var loadBooks = function(update){
         if(update || books.length == 0) {
             //$('.loading').hide();
             $('#read-book').find('.book-content').html('');
-            Suvato.progress('Updating ebook database');
+
             $('.bar, .no-books').find('a[data-refresh]').hide();
             updateDatabase(books).always(function(){
                 $('.bar, .no-books').find('a[data-refresh]').show();
@@ -592,6 +622,8 @@ var loadBooks = function(update){
                 //addDeleteLinks();
             }
         }
+        document.title = document.webL10n.get('app-title', {n: books.length});
+        $('#index').find('.title').text(document.title);
         ret.resolve(books);
 
     });
@@ -611,8 +643,11 @@ var createBookFromBlob = function(blob, $e, fname){
             var gbc = getBookCover(epub);
 
             gbc.done(function(cover){
+                console.log('got cover for ', book);
                 $('#'+book.id).append('<div class="book-loader"></div>');
                 asyncStorage.setItem('bookcover-'+book.id, cover);
+                console.log('starting post process of '+book.title);
+
                 var p = epub.postProcess();
 
                 p.progress(function(data){
@@ -623,6 +658,8 @@ var createBookFromBlob = function(blob, $e, fname){
                 });
 
                 p.done(function(id){
+                    window.loading = false;
+                    console.log('post process done', book);
                     asyncStorage.getItem('savedBooksIds', function(result) {
                         if(!result) {
                             result = [];
@@ -634,9 +671,12 @@ var createBookFromBlob = function(blob, $e, fname){
                         if(!result) {
                             result = [];
                         }
-                        asyncStorage.setItem('books', _.uniq([book].concat(result)));
+                        var nb = _.uniq([book].concat(result));
+                        document.title = document.webL10n.get('app-title', {n: nb.length});
+                        $('#index').find('.title').text(document.title);
+                        asyncStorage.setItem('books', nb );
                     });
-
+                    console.log('removing book loader');
                     $('#'+id).find('.book-loader').css({'transform': 'translate3d(0, 0, 0)'}).addClass('removing').on('transitionend', function(){
                         $('#'+id).find('a[data-title]').addClass('navigate-right');
                         $(this).remove();
@@ -661,10 +701,7 @@ var createBookFromClick = function(e){
     if($e.hasClass('navigate-right')) {
         $e.prepend('<div class="book-loader"></div>');
     }
-
-
     url = url.split("?")[0];
-    console.log(window.XMLHttpRequest);
 
     var xhr = new window.XMLHttpRequest({mozSystem: true});
     console.log(xhr);
@@ -694,9 +731,6 @@ var createBookFromClick = function(e){
 
             var contentDisposition = xhr.getResponseHeader('Content-Disposition');
 
-
-
-            console.log(xhr.getAllResponseHeaders());
             var blob = new Blob([xhr.response], { type: contentType });
             if(contentDisposition) {
                 var a = contentDisposition.substr(contentDisposition.indexOf('"')+1);
@@ -710,23 +744,29 @@ var createBookFromClick = function(e){
 
             }
 
-            console.log(fname);
-
-
             if(typeof navigator.getDeviceStorage === 'undefined') {
-                createBookFromBlob(blob, $e, fname);
+                if (loading) {
+                    setTimeout(function(){
+                        loading = true;
+                        createBookFromBlob(blob, $e, fname);
+                    }, 1000);
+                } else {
+                    loading = true;
+                    createBookFromBlob(blob, $e, fname);
+                }
             } else {
                 var sdcard = navigator.getDeviceStorage("sdcard");
                 var request = sdcard.addNamed(blob, fname);
                 request.onsuccess = function () {
-                    createBookFromBlob(blob, $e, fname);
+                    loadit(blob, $e, fname);
                 };
 
                 request.onerror = function (e) {
                     //console.log(e);
+                    $e.find('.book-loader').remove();
                     if (e.target.error.name =='NoModificationAllowedError'){
                         Suvato.error('This book already exists on your SD card', 5000);
-                        $e.removeClass('navigate-right').addClass('check-right');
+                        $e.removeClass('navigate-right');
                     } else {
                         Suvato.error('Could not write book to SD card', 5000);
                     }
@@ -748,5 +788,16 @@ var createBookFromClick = function(e){
 
     xhr.send();
 
+    var loadit = function(blob, $e, fname){
+        if (window.loading) {
+            setTimeout(function(){
 
-}
+                loadit(blob, $e, fname)
+            }, 1000);
+        } else {
+            window.loading = true;
+            createBookFromBlob(blob, $e, fname);
+        }
+    };
+
+};

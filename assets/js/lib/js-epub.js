@@ -1,4 +1,4 @@
-
+window.loading = false;
 
 (function (GLOBAL) {
     var JSEpub = function (blob) {
@@ -196,6 +196,8 @@
 
             var key = this.opf.spine[num];
             var self = this;
+            console.log('getting chapter for',self.opf.metadata['dc:title']['_text'], num, this.opf.spine[num], this.opf.manifest[this.opf.spine[num]]);
+
             if (this.opf.manifest.hasOwnProperty(key)){
                 var mediaType = this.opf.manifest[key]["media-type"];
                 var href = this.opf.manifest[key]["href"];
@@ -207,11 +209,9 @@
                 });
 
                 file.getData(new zip.TextWriter(), function(result) {
-                    if (mediaType === "text/css") {
-                        //result = this.postProcessCSS(result);
-                    } else if (mediaType === "application/xhtml+xml") {
+                    if (mediaType === "application/xhtml+xml") {
                         //dont post process now
-                        console.log('post processing', href);
+                        console.log('post processing', self.opf.metadata['dc:title']['_text'], href);
                         self.postProcessHTML(result, href).done(function(html){
                             //console.log('html for chapter '+num);
                             asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
@@ -224,27 +224,39 @@
 
 
                             } else {
+                                loading = false;
                                 self.ret.resolve(self.bookId);
                                 self.ret = null;
                             }
 
                         });
 
+                    } else {
+                        if(num+1 < self.opf.spine.length) {
+                            self.ret.notify({'progress':progress, 'bookId': self.bookId});
+                            self.saveChapter(num+1);
+                        } else {
+                            loading = false;
+                            self.ret.resolve(self.bookId);
+                            self.ret = null;
+                        }
                     }
                 });
 
 
+            } else {
+                console.warn(this.opf.manifest , 'doesn\'t have property ', key);
             }
         },
         // Will modify all HTML and CSS files in place.
         postProcess: function () {
-
+            loading = true;
             this.ret = _.Deferred();
 
-//            console.log('post process', this.opf);
+            console.log('post process', this.opf);
 //            var unzipper = this.unzipper(this.blob);
 
-//            console.log('spine length', this.opf.spine.length);
+            console.log('spine length', this.opf.spine.length);
             // save chapters to database
 
             this.saveChapter(0);
@@ -365,6 +377,9 @@
                         ret.resolve(GLOBAL.canvas.toDataURL(mediaType));
                         img = null;
 
+                    };
+                    GLOBAL.image.onerror = function(){
+                        ret.resolve(data);
                     };
 
                     GLOBAL.image.src = data;

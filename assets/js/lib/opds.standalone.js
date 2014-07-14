@@ -571,7 +571,8 @@ OPDS.Support.Browser = Class.$extend({
 	    if (browser.isOk()){
   		  var wrapper = {rawDoc: $(browser.body())};
   			OPDS.Support.LinkSet.extract(wrapper, '[type="application/atom+xml;type=entry;profile=opds-catalog"], [type="application/atom+xml;profile=opds-catalog"]');
-  			if (wrapper.links.size() == 0){
+            console.log(wrapper, Object.keys(wrapper.links).length);
+  			if (Object.keys(wrapper.links).length == 0){
   			  callback.call(browser, false);
   			}
   			callback.call(browser, wrapper.links);
@@ -894,8 +895,8 @@ OPDS.Feed = Class.$extend({
         if (browser.isOk()) {
           var parsed = self.parseRaw(browser.body(), parserOpts, browser);
           if (parsed == null) {
-            var disco = browser.discover(browser.currentLocation, function(){
-              if (disco.size > 0) {
+            var disco = browser.discover(browser.currentLocation, function(a){
+              if (disco && disco.size > 0) {
                 var d = disco.get('related');
                 if (d && d.length > 0){
                   _.first(d).navigate(callback);
