@@ -68,13 +68,11 @@ var deleteBook = function(id) {
         var newBooks = _.reject(books, function(item){
 
             if(item.id == id) {
-                console.log(item);
                 if(typeof navigator.getDeviceStorage !== 'undefined') {
                     //Delete from sd card
                     var sdcard = navigator.getDeviceStorage('sdcard');
                     var request = sdcard.delete(item.path);
                     request.onsuccess = function(){
-                        console.log('file deleted');
                     }
                 }
                 return true;
@@ -256,7 +254,6 @@ var getBookCover = function(epub) {
 var displayBookLine = function(file) {
     var bookPath = file.path + file.name;
 
-    console.log('getting OPF for '+bookPath);
 
     var epub = new JSEpub(file);
     var ret = _.Deferred();
@@ -266,8 +263,6 @@ var displayBookLine = function(file) {
         book.path = bookPath;
         ret.resolve(epub, book);
     }).fail(function(){
-        console.log('fail opf', epub);
-
         ret.resolve();
     });
 
@@ -310,7 +305,6 @@ var postProcessBook = function(epubs, num){
                 }
                 asyncStorage.setItem('savedBooksIds', _.uniq(booksPath.concat(result)));
             });
-            console.log('got books', result);
             var nb = _.uniq([epub.book].concat(result));
             asyncStorage.setItem('books', nb, function(){
                 document.title = document.webL10n.get('app-title', {n: nb.length});
@@ -345,8 +339,6 @@ var updateDatabase = function(books){
             linesDefs.push(d);
             d.done(function(epub, book){
 
-                console.log('d.done', epub, book);
-
                 if(!epub){
                     return;
                 }
@@ -355,7 +347,6 @@ var updateDatabase = function(books){
                 coverDefs.push(booksSaved);
 
                 gbc.done(function(cover){
-//                    console.log('got cover', book);
 
                     $('#'+book.id).append('<div class="book-loader"></div>');
                     epub.book = book;
@@ -374,10 +365,8 @@ var updateDatabase = function(books){
                 return item[1];
             });
 
-            console.log('books found', books);
 
             _.when(coverDefs).done(function(){
-                console.log('all covers done', arguments);
                 postProcessBook(arguments, 0).done(function(){
                     ret.resolve();
                 });
@@ -404,13 +393,10 @@ var showNewBooks = function(bks){
         var lang = document.webL10n.getLanguage().substr(0,2);
 
         //Set current system language on language dropdown
-        console.log(lang);
         $('#lang').val(lang);
 
         var url = 'http://www.feedbooks.com/books/top.atom?lang='+lang;
-        console.log(url);
         OPDS.access(url, function(catalog){
-            console.log(catalog);
             var content = '';
 
             _.each(catalog.entries, function(entry){
@@ -431,7 +417,6 @@ var showNewBooks = function(bks){
                     var thumbnail = _.find(entry.links, function(link){
                         return link.rel == 'http://opds-spec.org/image/thumbnail';
                     });
-//                        console.log(thumbnail);
                     content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+lnk+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
                 }
 
@@ -444,14 +429,12 @@ var showNewBooks = function(bks){
             var getNextPage = function(catalog){
                 $('#add-book').find('.loading').show();
                 var ret = _.Deferred();
-//                    console.log('getting next page for', catalog);
                 var nextLink = _.find(catalog.links, function(link){
                     return (link.rel == 'next');
                 });
 
                 var nextContent = '';
                 nextLink.navigate(function(feed){
-//                        console.log('feed', feed);
 
                     _.each(feed.entries, function(entry){
                         var bookExists = _.find(bks, function(b){
@@ -469,7 +452,6 @@ var showNewBooks = function(bks){
                             var thumbnail = _.find(entry.links, function(link){
                                 return link.rel == 'http://opds-spec.org/image/thumbnail';
                             });
-//                                console.log(thumbnail);
                             nextContent += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
                         }
 
@@ -542,7 +524,6 @@ var showBook = function(id) {
 //            updateImagesForChapter(bc, book.chapter, book.path, book.id);
             //TODO append button to load next chapter
             //TODO recover position and load current chapter
-            console.log('scroll position', book.scroll);
             rb.find('.content').get(0).scrollTop = book.scroll + 1;
             rb.find('.content').get(0).style.zindex = 9999999;
 //            setTimeout(function(){
@@ -628,7 +609,6 @@ var loadBooks = function(update){
             });
         } else {
             $('#index').find('.loading').hide();
-//            //console.log(books.length);
             if(books.length) {
                 $('#index').find('.title').text(books.length+ ' eBooks');
                 displayBookList(books);
@@ -656,11 +636,8 @@ var createBookFromBlob = function(blob, $e, fname){
             var gbc = getBookCover(epub);
 
             gbc.done(function(cover){
-                console.log('got cover for ', book);
                 $('#'+book.id).append('<div class="book-loader"></div>');
                 asyncStorage.setItem('bookcover-'+book.id, cover);
-                console.log('starting post process of '+book.title);
-
                 var p = epub.postProcess();
 
                 p.progress(function(data){
@@ -672,7 +649,6 @@ var createBookFromBlob = function(blob, $e, fname){
 
                 p.done(function(id){
                     window.loading = false;
-                    console.log('post process done', book);
                     asyncStorage.getItem('savedBooksIds', function(result) {
                         if(!result) {
                             result = [];
@@ -689,7 +665,6 @@ var createBookFromBlob = function(blob, $e, fname){
                         $('#index').find('.title').text(document.title);
                         asyncStorage.setItem('books', nb );
                     });
-                    console.log('removing book loader');
                     $('#'+id).find('.book-loader').css({'transform': 'translate3d(0, 0, 0)'}).addClass('removing').on('transitionend', function(){
                         $('#'+id).find('a[data-title]').addClass('navigate-right');
                         $(this).remove();
@@ -766,7 +741,6 @@ var createBookFromClick = function(e){
                 };
 
                 request.onerror = function (e) {
-                    //console.log(e);
                     $e.find('.book-loader').remove();
                     if (e.target.error.name =='NoModificationAllowedError'){
                         Suvato.error('This book already exists on your SD card', 5000);

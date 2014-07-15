@@ -2,6 +2,11 @@
 
 (function(){
 
+    asyncStorage.getItem('fontsize', function(s){
+        if(s) {
+            $('.book-content').css('font-size', s);
+        }
+    });
 
 try {
     asyncStorage.getItem('reading', function(reading){
@@ -10,7 +15,6 @@ try {
             showBook(reading).done(function(){
                 removeHider();
                 loadBooks().always(function(bks){
-                    console.log('books loaded', $('#'+reading));
                     showNewBooks(bks);
                     $('.currently-reading').removeClass('currently-reading');
                     $('#'+reading).addClass('currently-reading');
@@ -56,7 +60,6 @@ try {
 
 
         var curChapter = parseInt(rb.data('chapter'));
-        //console.log('current chapter', curChapter);
         var nextChapter = curChapter + add;
         var numChapters = parseInt(rb.data('numChapters'));
 
@@ -100,7 +103,6 @@ try {
         var bookId = rb.data('reading');
         var chapter = rb.data('chapter');
         $('#read-book-bar').removeClass('hidden');
-        console.log('scroll position is ', scrl);
         asyncStorage.setItem('reading', false);
         rb.find('.book-content').empty();
         updateBook(bookId, {scroll: scrl, chapter: chapter});
@@ -111,6 +113,9 @@ try {
     var timer = null;
     var dist = 0;
     var prevDist = 0;
+    var startY;
+//    var translated = 0;
+
     $('.book-content').on('click', 'a', function(e){
         e.preventDefault();
         //Scroll to element;
@@ -125,6 +130,7 @@ try {
     })
         .on('touchstart', function(e){
             //TODO Only if not scrolled to the end
+            startY = e.originalEvent.changedTouches[0].clientY;
 
             $('#read-book-bar').removeClass('hidden');
             if(ta) clearTimeout(ta);
@@ -142,40 +148,45 @@ try {
                     var dif = dist - prevDist;
                     var bc = $('.book-content');
                     var fs = parseInt(bc.data('font-size'));
-                    console.log(fs, dif);
                     if(dif > 0) {
                         dif = dif * 10;
                     }
                     bc.data('font-size', fs + dif/100);
-                    console.log(bc.data('font-size'));
                     bc[0].style.fontSize = Math.round(fs + dif/100) + 'px';
-
-
                 }
                 prevDist = dist;
             }
+//            if(touches.length == 1){
+//                var $el = $('#read-book').find('.content');
+//                var mv = translated + (e.originalEvent.changedTouches[0].clientY - startY) / 3;
+////                console.log('mv', mv, 'startY', startY, 'clientY',  e.originalEvent.changedTouches[0].clientY );
+////                console.log('scrollTop', $el.get(0).scrollTop);
+//                if($el.get(0).scrollTop + $el.get(0).offsetHeight >= $el.find('.book-content').get(0).offsetHeight - 50) {
+//                    console.log($el.get(0).scrollTop + $el.get(0).offsetHeight, $el.find('.book-content').get(0).offsetHeight - 50);
+//                    if(ta) clearTimeout(ta);
+//                    $('#read-book-bar').removeClass('hidden');
+//                    // TODO move it up
+//                    if(mv < -80) mv = -80;
+//                    $el.css('transform','translate3d(0, '+mv+'px, 0)');
+//                } else if($el.get(0).scrollTop <= 5){
+//                    if(mv > 70) mv = 70;
+//                    $el.css('transform', 'translate3d(0, '+mv+'px, 0)');
+//                } else {
+//                    $el.css('transform', 'none');
+//                }
+//            }
+//            console.log('touches', touches.length);
 
         }).on('touchend', function(e){
             dist = 0;
             prevDist = 0;
+            asyncStorage.setItem('fontsize', $('.book-content').css('font-size'));
+
+//            translated = (e.originalEvent.changedTouches[0].clientY - startY) / 3;
+//            if(translated < -80) translated = -80;
+//            if(translated > 70) translated = 70;
         });
 
-    $('#read-book').find('.content').on('scroll', function(e){
-        //console.log(e);
-        if(timer !== null) {
-            clearTimeout(timer);
-        }
-
-        timer = setTimeout(function(){
-            var $el = $('#read-book').find('.content');
-            //console.log($el.get(0).scrollTop, $el.get(0).offsetHeight, $el.find('.book-content').get(0).offsetHeight);
-            if($el.get(0).scrollTop + $el.get(0).offsetHeight >= $el.find('.book-content').get(0).offsetHeight-50) {
-                if(ta) clearTimeout(ta);
-                $('#read-book-bar').removeClass('hidden');
-            }
-
-        }, 150);
-    });
     var startX;
     var currentPos = 0;
     var prevX = 0;
@@ -213,7 +224,6 @@ try {
         if (rb.data('reading')) {
             var chapter = rb.data('chapter');
             var scrl = rb.find('.content').get(0).scrollTop;
-            console.log('scroll position is ', scrl);
             updateBook(rb.data('reading'), {scroll: scrl, chapter: chapter});
         }
 
@@ -267,7 +277,6 @@ try {
         $('.active').removeClass('active');
         $('#index').addClass('active');
         var id = e.currentTarget.getAttribute('href');
-        console.log('opening', id);
         showBook(id);
 
         asyncStorage.setItem('reading', id);
@@ -291,8 +300,6 @@ try {
             }else {
                 asyncStorage.setItem('reading', false);
             }
-        } else {
-            rb.find('.content').css({'transform':'translate3d(0,0,0)'});
         }
     });
 
@@ -321,10 +328,7 @@ try {
         asyncStorage.getItem('books', function(b) {
             books = b;
         });
-        console.log(url);
         OPDS.access(url, function(catalog){
-            console.log(catalog);
-
             var booksDone = [];
             _.each(catalog.links, function(link){
 
@@ -377,7 +381,6 @@ try {
     $(document).on('click', 'a[href*="feedbooks.com"][href$="epub"]', function(e){
         e.preventDefault();
         var url = e.currentTarget.getAttribute('href');
-        console.log(url);
         createBookFromClick(e);
         //TODO load book
     });

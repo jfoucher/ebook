@@ -29,7 +29,6 @@ window.loading = false;
 
                     });
                 }, function(){
-                    console.error('error in zipreader');
                     def.reject()
                 });
             }
@@ -52,7 +51,6 @@ window.loading = false;
             var self = this;
 
             this.getEntries().done(function(){
-                console.log('we have entries', self.entries);
                 var container = _.find(self.entries, function(entry){
                     return entry.filename == 'META-INF/container.xml'
                 });
@@ -74,7 +72,6 @@ window.loading = false;
                 });
 
             }).fail(function(){
-                console.error('coild not get entries');
                 ret.reject();
             });
 
@@ -196,7 +193,6 @@ window.loading = false;
 
             var key = this.opf.spine[num];
             var self = this;
-            console.log('getting chapter for',self.opf.metadata['dc:title']['_text'], num, this.opf.spine[num], this.opf.manifest[this.opf.spine[num]]);
 
             if (this.opf.manifest.hasOwnProperty(key)){
                 var mediaType = this.opf.manifest[key]["media-type"];
@@ -211,7 +207,6 @@ window.loading = false;
                 file.getData(new zip.TextWriter(), function(result) {
                     if (mediaType === "application/xhtml+xml") {
                         //dont post process now
-                        console.log('post processing', self.opf.metadata['dc:title']['_text'], href);
                         self.postProcessHTML(result, href).done(function(html){
                             //console.log('html for chapter '+num);
                             asyncStorage.setItem('book_'+self.bookId+'_chapters_'+num, html);
@@ -244,21 +239,12 @@ window.loading = false;
                 });
 
 
-            } else {
-                console.warn(this.opf.manifest , 'doesn\'t have property ', key);
             }
         },
         // Will modify all HTML and CSS files in place.
         postProcess: function () {
-            loading = true;
+            window.loading = true;
             this.ret = _.Deferred();
-
-            console.log('post process', this.opf);
-//            var unzipper = this.unzipper(this.blob);
-
-            console.log('spine length', this.opf.spine.length);
-            // save chapters to database
-
             this.saveChapter(0);
 
             return this.ret;
@@ -288,15 +274,10 @@ window.loading = false;
             var doc = self.xmlDocument(xml);
             //TODO find a way to get images
             var images = doc.getElementsByTagName("img");
-
-//            console.log(images.length+' images in this html');
             if(images.length){
                 var setImageUri = function(n){
                     var image = images[n];
                     var src = image.getAttribute("src");
-
-//                console.log('image src', src);
-
                     if (/^data/.test(src)) {
                         if(n+1 < images.length) {
                             setImageUri(n+1);
@@ -346,14 +327,8 @@ window.loading = false;
             img.getData(new zip.Data64URIWriter(), function(data){
 //                console.log('got image data for '+dataHref);
                 if(data.length > 2000000) {
-                    console.log('not resizing image', Math.round(data.length/1000)+' kB');
                     ret.resolve(data);
                 } else {
-                    console.log('resizing image', Math.round(data.length/1000)+' kB');
-//                    var image = new Image();
-
-
-                    console.log(GLOBAL.image);
 
                     GLOBAL.image.onload = function(){
                         GLOBAL.image.width = GLOBAL.image.naturalWidth;
@@ -364,7 +339,6 @@ window.loading = false;
                             GLOBAL.image.height *= maxImgWidth / GLOBAL.image.width;
                             GLOBAL.image.width = maxImgWidth;
                         } else {
-                            console.log('not resizing image', Math.round(data.length/1000)+' kB', GLOBAL.image.width, maxImgWidth);
                             ret.resolve(data);
                         }
                             //console.log(image.height, image.width);
@@ -373,7 +347,6 @@ window.loading = false;
                         GLOBAL.canvas.width = GLOBAL.image.width;
                         GLOBAL.canvas.height = GLOBAL.image.height;
                         GLOBAL.ctx.drawImage(GLOBAL.image, 0, 0, GLOBAL.image.width, GLOBAL.image.height);
-                        console.log('resizing image', Math.round(data.length/1000)+' kB');
                         ret.resolve(GLOBAL.canvas.toDataURL(mediaType));
                         img = null;
 

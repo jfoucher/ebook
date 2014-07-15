@@ -215,6 +215,8 @@
     line-height: 1.4em;
     font-size: 1em;
     min-height: 120%;
+    z-index: 5;
+    background: #fefefe;
 }
 .book-content p,  .book-content ul, .book-content ol, .book-content .also, .book-content img, .book-content .aboutauthor, .book-content .logo, .book-content .infos, .book-content .texttitle {
     max-width: 40em;
@@ -265,8 +267,8 @@
     display:block;
     float:left;
     text-transform: uppercase;
-    margin-right: 0.22rem;
-    padding-top: 0;
+    margin-right: 0.05em;
+    padding-top: 0.07em;
 }
 .book-content p:not(.toc):not(.center):not(.bullet_list):first-of-type:first-line, .book-content p.nonindent1:first-line{
     text-transform: uppercase;
@@ -480,6 +482,23 @@ a:not([href]) {
     display:none;
     color: #ca3d3d;
 }
+
+/*#previous-chapter-spring, #next-chapter-spring {*/
+    /*background: #ddd;*/
+    /*position: absolute;*/
+    /*width: 100%;*/
+    /*text-align: center;*/
+    /*height: 5rem;*/
+    /*font-size: 1rem;*/
+    /*line-height: 1rem;*/
+    /*padding: 2rem 0;*/
+    /*z-index: 1;*/
+    /*color: #999;*/
+/*}*/
+/*#next-chapter-spring {*/
+    /*bottom: 44px;*/
+/*}*/
+
 @media (min-width: 1000px) {
     .panes-outer .panes-wrapper.two{
         width: 100%;
