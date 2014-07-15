@@ -8,36 +8,35 @@
         }
     });
 
-try {
-    asyncStorage.getItem('reading', function(reading){
-        if(reading) {
-            $('#read-book').find('.book-content, .bar').show();
-            showBook(reading).done(function(){
-                removeHider();
-                loadBooks().always(function(bks){
-                    showNewBooks(bks);
-                    $('.currently-reading').removeClass('currently-reading');
-                    $('#'+reading).addClass('currently-reading');
+    try {
+        asyncStorage.getItem('reading', function(reading){
+            if(reading) {
+                $('#read-book').find('.book-content, .bar').show();
+                showBook(reading).done(function(){
+                    removeHider();
+                    loadBooks().always(function(bks){
+                        showNewBooks(bks);
+                        $('.currently-reading').removeClass('currently-reading');
+                        $('#'+reading).addClass('currently-reading');
+                    });
                 });
-            });
-        } else {
-            loadBooks().always(function(bks){
-                removeHider();
-                showNewBooks(bks);
-            });
-        }
-    });
-} catch(e) {
-    removeHider();
-    showNewBooks([]);
-}
+            } else {
+                loadBooks().always(function(bks){
+                    removeHider();
+                    showNewBooks(bks);
+                });
+            }
+        });
+    } catch(e) {
+        removeHider();
+        showNewBooks([]);
+    }
 
 
 
     $('.bar, .no-books').on('click', 'a', function(e){
         e.preventDefault();
-        var target = e.currentTarget;
-        var l = target.getAttribute('data-target');
+        var l = e.currentTarget.getAttribute('data-target');
         if(l) {
             $('.active').removeClass('active');
             $('#'+l).addClass('active');
@@ -49,8 +48,7 @@ try {
 
     }).on('click','a.chapter', function(e){
         e.preventDefault();
-        var add = -1;
-        var rb = $('#read-book');
+        var add = -1, rb = $('#read-book');
         rb.find('.book-content').html('');
         rb.find('.loading').show();
         rb.find('.chapter').removeClass('hidden');
@@ -59,9 +57,9 @@ try {
         }
 
 
-        var curChapter = parseInt(rb.data('chapter'));
-        var nextChapter = curChapter + add;
-        var numChapters = parseInt(rb.data('numChapters'));
+        var curChapter = parseInt(rb.data('chapter')),
+            nextChapter = curChapter + add,
+            numChapters = parseInt(rb.data('numChapters'));
 
         if(nextChapter <= 0) {
             nextChapter = 0;
@@ -95,13 +93,11 @@ try {
     $('.pane').on('click', 'a[data-back]', function(e){
 
         e.preventDefault();
-        var rb = $('#read-book');
-        var scrl = rb.find('.content').get(0).scrollTop;
+        var rb = $('#read-book'),
+            scrl = rb.find('.content').get(0).scrollTop,
+            bookId = rb.data('reading'),
+            chapter = rb.data('chapter');
         $('.panes-wrapper').removeClass('right').addClass('left');
-        //Save scroll position for current book
-
-        var bookId = rb.data('reading');
-        var chapter = rb.data('chapter');
         $('#read-book-bar').removeClass('hidden');
         asyncStorage.setItem('reading', false);
         rb.find('.book-content').empty();
@@ -109,22 +105,20 @@ try {
     }).on('click', 'a', function(){
         if(ta) clearTimeout(ta);
     });
-    var ta = null;
-    var timer = null;
-    var dist = 0;
-    var prevDist = 0;
-    var startY;
+    var ta = null,
+        dist = 0,
+        prevDist = 0,
+        startY;
 //    var translated = 0;
 
     $('.book-content').on('click', 'a', function(e){
         e.preventDefault();
         //Scroll to element;
-        var id = e.currentTarget.getAttribute('href');
-        var obj = $(id);
+        var id = e.currentTarget.getAttribute('href'),
+            obj = $(id),
+            childPos = obj.offset(),
+            parentPos = obj.parents('.book-content').offset();
         obj.css({'display': 'inline-block', 'position': 'relative'});
-        var childPos = obj.offset();
-        var parentPos = obj.parents('.book-content').offset();
-
         $('#read-book').find('.content').get(0).scrollTop = childPos.top - parentPos.top - 20;
 
     })
@@ -145,9 +139,9 @@ try {
             if (touches.length == 2){
                 dist = Math.sqrt(Math.pow((touches[0].clientX - touches[1].clientX), 2) + Math.pow((touches[0].clientY - touches[1].clientY),2));
                 if(prevDist !== 0 && prevDist !== dist){
-                    var dif = dist - prevDist;
-                    var bc = $('.book-content');
-                    var fs = parseInt(bc.data('font-size'));
+                    var dif = dist - prevDist,
+                        bc = $('.book-content'),
+                        fs = parseInt(bc.data('font-size'));
                     if(dif > 0) {
                         dif = dif * 10;
                     }
@@ -187,13 +181,13 @@ try {
 //            if(translated > 70) translated = 70;
         });
 
-    var startX;
-    var currentPos = 0;
-    var prevX = 0;
+    var startX,
+        currentPos = 0,
+        prevX = 0;
     $(document).on('click', 'a.delete-book', function(e){
         e.preventDefault();
-        var $el = $(e.currentTarget);
-        var li = $('#'+$el.data('id'));
+        var $el = $(e.currentTarget),
+            li = $('#'+$el.data('id'));
         li.addClass('removing');
         deleteBook($el.data('id')).done(function(){
             $('#read-book').find('.book-content, .bar').hide();
@@ -214,16 +208,15 @@ try {
 
         e.preventDefault();
 
-        var target = e.currentTarget;
-
-        var id = target.getAttribute('href');
-        var rb = $('#read-book');
+        var target = e.currentTarget,
+            id = target.getAttribute('href'),
+            rb = $('#read-book');
         rb.find('.title').html(target.getAttribute('data-title'));
 
         rb.find('.book-content, .bar').show();
         if (rb.data('reading')) {
-            var chapter = rb.data('chapter');
-            var scrl = rb.find('.content').get(0).scrollTop;
+            var chapter = rb.data('chapter'),
+                scrl = rb.find('.content').get(0).scrollTop;
             updateBook(rb.data('reading'), {scroll: scrl, chapter: chapter});
         }
 
@@ -232,18 +225,18 @@ try {
         asyncStorage.setItem('reading', id);
 
     }).on('touchstart', 'li', function(e){
-        var touches = e.originalEvent.changedTouches;
-        var $el = $(e.currentTarget);
+        var touches = e.originalEvent.changedTouches,
+            $el = $(e.currentTarget),
+            lis = $el.find('a[data-title]');
         startX = touches[0].pageX;
         prevX = touches[0].pageX;
-        var lis = $el.find('a[data-title]');
         lis.css({'transition': ''});
 
     }).on('touchend', 'li', function(e){
-        var $el = $(e.currentTarget);
-        var touches = e.originalEvent.changedTouches;
-        var moveX = - (currentPos - (touches[0].pageX - startX));
-        var lis = $el.find('a[data-title]');
+        var $el = $(e.currentTarget),
+            touches = e.originalEvent.changedTouches,
+            moveX = - (currentPos - (touches[0].pageX - startX)),
+            lis = $el.find('a[data-title]');
         lis.css({'transform': '', 'transition': 'transform 0.8s'});
         if(moveX <= 0) {
             $el.removeClass('deleting');
@@ -256,10 +249,10 @@ try {
         }
 
     }).on('touchmove', 'li', function(e){
-        var $el = $(e.currentTarget);
-        var touches = e.originalEvent.changedTouches;
-        var moveX = - (currentPos - (touches[0].pageX - startX));
-        var lis = $el.find('a[data-title]');
+        var $el = $(e.currentTarget),
+            touches = e.originalEvent.changedTouches,
+            moveX = - (currentPos - (touches[0].pageX - startX)),
+            lis = $el.find('a[data-title]');
         if(moveX <= 0) {
             moveX = 0;
 
@@ -292,9 +285,9 @@ try {
         if(document.visibilityState == 'hidden'){
             if($('.panes-wrapper').hasClass('right')){
 
-                var bookId = rb.data('reading');
+                var bookId = rb.data('reading'),
+                    scrl = rb.find('.content').get(0).scrollTop;
                 asyncStorage.setItem('reading', bookId);
-                var scrl = rb.find('.content').get(0).scrollTop;
     //        //console.log('scroll position is ', scrl);
                 updateBook(bookId, {scroll: scrl});
             }else {
@@ -380,8 +373,7 @@ try {
 
     $(document).on('click', 'a[href*="feedbooks.com"][href$="epub"]', function(e){
         e.preventDefault();
-        var url = e.currentTarget.getAttribute('href');
-        createBookFromClick(e);
+        createBookFromClick(e.currentTarget.getAttribute('href'));
         //TODO load book
     });
     $(document).on('click', 'a[href="^http"]', function(e){

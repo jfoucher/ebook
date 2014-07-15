@@ -71,9 +71,7 @@ var deleteBook = function(id) {
                 if(typeof navigator.getDeviceStorage !== 'undefined') {
                     //Delete from sd card
                     var sdcard = navigator.getDeviceStorage('sdcard');
-                    var request = sdcard.delete(item.path);
-                    request.onsuccess = function(){
-                    }
+                    var request = sdcard['delete'](item.path);
                 }
                 return true;
             }
@@ -177,7 +175,7 @@ var getFilesToUpdate = function(){
                 files.push(file);
             }
             if (!this.done) {
-                this.continue();
+                this['continue']();
             } else {
                 ret.resolve(files);
             }
@@ -743,10 +741,10 @@ var createBookFromClick = function(e){
                 request.onerror = function (e) {
                     $e.find('.book-loader').remove();
                     if (e.target.error.name =='NoModificationAllowedError'){
-                        Suvato.error('This book already exists on your SD card', 5000);
+                        Suvato.error(document.webL10n.get('book-exists'), 5000);
                         $e.removeClass('navigate-right');
                     } else {
-                        Suvato.error('Could not write book to SD card', 5000);
+                        Suvato.error(document.webL10n.get('could-not-write-book'), 5000);
                     }
                 };
             }
@@ -754,12 +752,12 @@ var createBookFromClick = function(e){
     }, false);
 
     xhr.addEventListener("error", function(e){
-        Suvato.error('Could not download this book', 5000);
+        Suvato.error(document.webL10n.get('could-not-download'), 5000);
 //            console.error('error', e);
     }, false);
 
     xhr.addEventListener("abort", function(e){
-        Suvato.error('Download aborted', 5000);
+        Suvato.error(document.webL10n.get('download-aborted'), 5000);
 //            console.error('error', e);
     }, false);
 
