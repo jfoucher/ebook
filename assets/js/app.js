@@ -271,9 +271,7 @@
         $('#index').addClass('active');
         var id = e.currentTarget.getAttribute('href');
         showBook(id);
-
         asyncStorage.setItem('reading', id);
-        //TODO close add book modal and read book
     })
     .on('click', 'a.new-book.navigate-right', function(e){
         createBookFromClick(e);
@@ -352,7 +350,14 @@
                                 var thumbnail = _.find(entry.links, function(link){
                                     return link.rel == 'http://opds-spec.org/image/thumbnail';
                                 });
-                                content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
+                                var categories = [entry.categories[0]];
+                                if(typeof entry.categories[2] !== 'undefined') {
+                                    categories.push(entry.categories[2]);
+                                }
+                                if(typeof entry.categories[4] !== 'undefined') {
+                                    categories.push(entry.categories[4]);
+                                }
+                                content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(',')+'</p></div></a></li>';
                             }
 
                         });

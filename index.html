@@ -19,7 +19,6 @@
 <div id="wrapper" class="panes-outer">
     <div class="left panes-wrapper two">
         <section id="index" class="pane">
-            <!-- Make sure all your bars are the first things in your <body> -->
             <footer class="bar bar-footer">
                 <a class="icon icon-plus pull-right" data-target="add-book" href="#"></a>
                 <a class="icon icon-refresh pull-left" data-refresh href="#"></a>
@@ -27,14 +26,11 @@
                 <h1 class="title" data-l10n-id="app-title">eBook</h1>
             </footer>
 
-            <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
             <div class="content">
 
                 <div id="spinner" class="loading" style="display:none">
                     <div class="spinner">
-                        <!-- Mask of the quarter of circle -->
                         <div class="mask">
-                            <!-- Inner masked circle -->
                             <div class="maskedCircle"></div>
                         </div>
                     </div>
@@ -57,20 +53,23 @@
                 <a style="padding-right:15px" id="next-chapter" class="chapter icon icon-down pull-right" href="#"></a>
                 <h1 class="title"></h1>
             </footer>
-            <!--<div id="previous-chapter-spring" data-l10n-id="previous-chapter"></div>-->
             <div class="content">
 
                 <div class="book-content"></div>
-
+                <div class="loading" style="display:none">
+                    <div class="spinner">
+                        <div class="mask">
+                            <div class="maskedCircle"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <!--<div id="next-chapter-spring" data-l10n-id="next-chapter"></div>-->
 
         </section>
 
     </div>
 </div>
 <section id="add-book" class="modal">
-    <!-- Make sure all your bars are the first things in your <body> -->
     <header class="bar bar-standard">
         <form id="find-books">
             <select id="lang">
@@ -83,7 +82,6 @@
                 <option value="all">all</option>
             </select>
             <input type="search" placeholder="Search" id="search">
-            <!--<button class="btn btn-positive btn-block" style="width: 18%;float: right">Search</button>-->
         </form>
 
     </header>
@@ -92,7 +90,6 @@
         <h1 class="title" data-l10n-id="add-book-title">Add book</h1>
     </footer>
 
-    <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
     <div class="content">
 
         <ul class="table-view" id="add-book-list">
@@ -100,9 +97,7 @@
         </ul>
         <div class="loading" style="display:none">
             <div class="spinner">
-                <!-- Mask of the quarter of circle -->
                 <div class="mask">
-                    <!-- Inner masked circle -->
                     <div class="maskedCircle"></div>
                 </div>
             </div>
@@ -113,9 +108,7 @@
 <div id="hider">
     <div class="loading">
         <div class="spinner">
-            <!-- Mask of the quarter of circle -->
             <div class="mask">
-                <!-- Inner masked circle -->
                 <div class="maskedCircle"></div>
             </div>
         </div>

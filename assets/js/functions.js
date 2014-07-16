@@ -40,7 +40,7 @@ var updateBook = function(id, data) {
             if (book.id == id){
                 //console.log('extending', book, data);
                 var b = _.extend(book, data);
-//                console.log(b);
+//                console.log(b);x
                 return b;
             }
             return book;
@@ -121,13 +121,22 @@ var showFirstPage = function (epub) {
     $('#book-list').show();
     $('.no-books').hide();
 
-    var num = epub.opf.spine.length;
-    var bookId = epub.bookId;
-
+    var num = epub.opf.spine.length,
+        bookId = epub.bookId,
+        description;
+    console.log(epub.opf.metadata['dc:title']._text, epub.opf.metadata);
+    if(typeof epub.opf.metadata['dc:subject'] == 'object') {
+        description = epub.opf.metadata['dc:subject']._text;
+    } else if(typeof epub.opf.metadata['dc:description'] == 'object') {
+        description = $(epub.opf.metadata['dc:description']._text).text();
+    } else if(typeof epub.opf.metadata['description'] == 'object') {
+        description = $(epub.opf.metadata['description']._text).text();
+    }
     var book = {
         id: bookId,
         title: epub.opf.metadata['dc:title']._text,
         author: epub.opf.metadata['dc:creator']._text,
+        description: description,
         chapter: 0,
         cover:'data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
         num_chapters: num,
@@ -138,7 +147,7 @@ var showFirstPage = function (epub) {
 //    console.log('book', book);
     //console.log('small image data', smallImageData);
     if($('#'+bookId).length == 0){
-        var line = '<li class="table-view-cell media" id="'+bookId+'"><a href="#" data-id="'+bookId+'" class="delete-book"><span class="icon icon-trash"></span></a><a data-title="'+book.title+'" class="" href="'+bookId+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.author+'</p></div></a><div class="book-read-percent" style="transform: translate3d(-100%, 0, 0);"></div></li>';
+        var line = '<li class="table-view-cell media" id="'+bookId+'"><a href="#" data-id="'+bookId+'" class="delete-book"><span class="icon icon-trash"></span></a><a data-title="'+book.title+'" class="" href="'+bookId+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.description+'</p></div></a><div class="book-read-percent" style="transform: translate3d(-100%, 0, 0);"></div></li>';
         var authorLine = $('[data-author="'+book.author+'"]');
         if(authorLine.length) {
             authorLine.after(line);
@@ -415,7 +424,14 @@ var showNewBooks = function(bks){
                     var thumbnail = _.find(entry.links, function(link){
                         return link.rel == 'http://opds-spec.org/image/thumbnail';
                     });
-                    content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+lnk+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
+                    var categories = [entry.categories[0]];
+                    if(typeof entry.categories[2] !== 'undefined') {
+                        categories.push(entry.categories[2]);
+                    }
+                    if(typeof entry.categories[4] !== 'undefined') {
+                        categories.push(entry.categories[4]);
+                    }
+                    content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+lnk+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(', ')+'</p></div></a></li>';
                 }
 
             });
@@ -450,7 +466,17 @@ var showNewBooks = function(bks){
                             var thumbnail = _.find(entry.links, function(link){
                                 return link.rel == 'http://opds-spec.org/image/thumbnail';
                             });
-                            nextContent += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+entry.author.name+'</p></div></a></li>';
+
+                            var categories = [entry.categories[0]];
+                            if(typeof entry.categories[2] !== 'undefined') {
+                                categories.push(entry.categories[2]);
+                            }
+                            if(typeof entry.categories[4] !== 'undefined') {
+                                categories.push(entry.categories[4]);
+                            }
+
+
+                            nextContent += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(', ')+'</p></div></a></li>';
                         }
 
                     });
@@ -552,7 +578,7 @@ var displayBookList = function(bks){
                 var progress = (1 - (book.chapter / (book.num_chapters-1))) * 100;
 
                 if($('#'+book.id).length == 0){
-                    bl.append('<li class="table-view-cell media" id="'+book.id+'"><a href="#" class="delete-book" data-id="'+book.id+'"><span class="icon icon-trash"></span></a><a data-title="'+book.title+'" class="navigate-right" href="'+book.id+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.author+'</p></div></a><div class="book-read-percent" style="transform: translate3d(-'+progress+'%, 0, 0);"></div></li>');
+                    bl.append('<li class="table-view-cell media" id="'+book.id+'"><a href="#" class="delete-book" data-id="'+book.id+'"><span class="icon icon-trash"></span></a><a data-title="'+book.title+'" class="navigate-right" href="'+book.id+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.description+'</p></div></a><div class="book-read-percent" style="transform: translate3d(-'+progress+'%, 0, 0);"></div></li>');
                 }
 
                 asyncStorage.getItem('bookcover-'+book.id, function(cover, k){
