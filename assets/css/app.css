@@ -158,6 +158,7 @@
     width: 5rem;
     height: 5rem;
     margin: -3rem 0 0 -3rem;
+    z-index: 9;
 }
 
 /* Spinning circle (inner circle) */
@@ -321,9 +322,21 @@ a:not([href]) {
 .hidden {
     visibility: hidden;
 }
-
+.table-view-cell {
+    padding-right: 55px;
+}
+.table-view-cell a.navigate-right:after{
+    right: 25px;
+}
 .table-view-cell .media-body, .book-content {
     font-weight: 300;
+}
+.table-view-cell .media-body p {
+    height: 2em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
 }
 .content {
     overflow-x: hidden;
