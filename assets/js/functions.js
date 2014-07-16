@@ -124,13 +124,12 @@ var showFirstPage = function (epub) {
     var num = epub.opf.spine.length,
         bookId = epub.bookId,
         description;
-    console.log(epub.opf.metadata['dc:title']._text, epub.opf.metadata);
     if(typeof epub.opf.metadata['dc:subject'] == 'object') {
         description = epub.opf.metadata['dc:subject']._text;
     } else if(typeof epub.opf.metadata['dc:description'] == 'object') {
-        description = $(epub.opf.metadata['dc:description']._text).text();
+        description = epub.opf.metadata['dc:description']._text.replace(/(<([^>]+)>)/ig,"");
     } else if(typeof epub.opf.metadata['description'] == 'object') {
-        description = $(epub.opf.metadata['description']._text).text();
+        description = epub.opf.metadata['description']._text.replace(/(<([^>]+)>)/ig,"");
     }
     var book = {
         id: bookId,
@@ -148,11 +147,15 @@ var showFirstPage = function (epub) {
     //console.log('small image data', smallImageData);
     if($('#'+bookId).length == 0){
         var line = '<li class="table-view-cell media" id="'+bookId+'"><a href="#" data-id="'+bookId+'" class="delete-book"><span class="icon icon-trash"></span></a><a data-title="'+book.title+'" class="" href="'+bookId+'"><img class="media-object pull-left" src="'+book.cover+'" width="42"><div class="media-body">'+book.title+'<p>'+book.description+'</p></div></a><div class="book-read-percent" style="transform: translate3d(-100%, 0, 0);"></div></li>';
-        var authorLine = $('[data-author="'+book.author+'"]');
+        var authorLine = $('#book-list').find('li[data-author="'+book.author+'"]');
         if(authorLine.length) {
             authorLine.after(line);
-        }else {
+        } else {
             $('#book-list').append('<li class="table-view-cell divider" data-author="'+book.author+'">'+book.author+'</li>'+line);
+        }
+
+        if($('#newbook-'+bookId).length){
+            $('#newbook-'+bookId).find('a.new-book').removeClass('navigate-right').addClass('check-right').attr('href', bookId);
         }
 
 //        console.log('adding line');
@@ -404,12 +407,11 @@ var showNewBooks = function(bks){
 
         var url = 'http://www.feedbooks.com/books/top.atom?lang='+lang;
         OPDS.access(url, function(catalog){
-            var content = '';
-
             _.each(catalog.entries, function(entry){
                 var bookExists = _.find(bks, function(b){
                     return b.title == entry.title;
                 });
+
                 var cl = 'navigate-right';
 
                 var epubLink = _.find(entry.links, function(link){
@@ -428,14 +430,25 @@ var showNewBooks = function(bks){
                     if(typeof entry.categories[2] !== 'undefined') {
                         categories.push(entry.categories[2]);
                     }
-                    if(typeof entry.categories[4] !== 'undefined') {
+                    if (typeof entry.categories[4] !== 'undefined') {
                         categories.push(entry.categories[4]);
                     }
-                    content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+lnk+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(', ')+'</p></div></a></li>';
+
+                    var id = 'newbook-'+hashCode(entry.id);
+
+                    var line = '<li class="table-view-cell media" id="'+id+'"><a class="'+cl+' new-book" href="'+lnk+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(', ')+'</p></div></a></li>';
+                    if ($('#'+id).length >= 0) {
+    var authorLine = $('#add-book-list').find('li[data-add-author="'+entry.author.name+'"]');
+                        if(authorLine.length) {
+                            authorLine.after(line);
+                        }else {
+                            $('#add-book-list').append('<li class="table-view-cell divider" data-add-author="'+entry.author.name+'">'+entry.author.name+'</li>'+line);
+                        }          line = '';
+                     }
                 }
 
             });
-            $('#add-book-list').html(content);
+
             $('#add-book').find('.loading').hide();
 
             //get Next page link
@@ -455,13 +468,15 @@ var showNewBooks = function(bks){
                             return b.title == entry.title;
                         });
                         var cl = 'navigate-right';
-                        if(bookExists){
-                            cl = 'check-right';
-                        }
 
                         var epubLink = _.find(entry.links, function(link){
                             return link.rel == 'http://opds-spec.org/acquisition' && link.type == 'application/epub+zip';
                         });
+                        var lnk = epubLink.url;
+                        if(bookExists){
+                            cl = 'check-right';
+                            lnk = bookExists.id;
+                        }
                         if(epubLink) {
                             var thumbnail = _.find(entry.links, function(link){
                                 return link.rel == 'http://opds-spec.org/image/thumbnail';
@@ -474,9 +489,17 @@ var showNewBooks = function(bks){
                             if(typeof entry.categories[4] !== 'undefined') {
                                 categories.push(entry.categories[4]);
                             }
+                            var id = 'newbook-'+hashCode(entry.id);
 
-
-                            nextContent += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(', ')+'</p></div></a></li>';
+                            var line = '<li class="table-view-cell media" id="'+id+'"><a class="'+cl+' new-book" href="'+lnk+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(', ')+'</p></div></a></li>';
+                            if ($('#'+id).length == 0) {
+                                var authorLine = $('#add-book-list').find('[data-add-author="'+entry.author.name+'"]');
+                                if(authorLine.length) {
+                                    authorLine.after(line);
+                                }else {
+                                    $('#add-book-list').append('<li class="table-view-cell divider" data-add-author="'+entry.author.name+'">'+entry.author.name+'</li>'+line);
+                                }
+                            }
                         }
 
                     });
@@ -605,17 +628,13 @@ var displayBookList = function(bks){
 
 
 var loadBooks = function(update){
-
     var ret = _.Deferred();
 
     $('#index').find('.loading').show();
     asyncStorage.getItem('books', function(books) {
-
         if(!books) {
             books = [];
         }
-
-
 
         if(!$('#book-list').length) {
             $('#index').find('.content').prepend('<ul class="table-view" id="book-list"></ul>');
@@ -628,8 +647,10 @@ var loadBooks = function(update){
             $('.bar, .no-books').find('a[data-refresh]').hide();
             updateDatabase(books).always(function(){
                 $('.bar, .no-books').find('a[data-refresh]').show();
+
             }).fail(function(){
                 displayBookList(books);
+
             });
         } else {
             $('#index').find('.loading').hide();
@@ -638,13 +659,12 @@ var loadBooks = function(update){
                 displayBookList(books);
                 //addDeleteLinks();
             }
+
         }
         document.title = document.webL10n.get('app-title', {n: books.length});
         $('#index').find('.title').text(document.title);
         ret.resolve(books);
-
     });
-
 
     return ret;
 };

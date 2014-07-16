@@ -14,14 +14,14 @@
                 $('#read-book').find('.book-content, .bar').show();
                 showBook(reading).done(function(){
                     removeHider();
-                    loadBooks().always(function(bks){
+                    loadBooks().done(function(bks){
                         showNewBooks(bks);
                         $('.currently-reading').removeClass('currently-reading');
                         $('#'+reading).addClass('currently-reading');
                     });
                 });
             } else {
-                loadBooks().always(function(bks){
+                loadBooks().done(function(bks){
                     removeHider();
                     showNewBooks(bks);
                 });
@@ -321,6 +321,9 @@
         });
         OPDS.access(url, function(catalog){
             var booksDone = [];
+            if(catalog.links.length == 0){
+                $('#add-book').find('.loading').hide();
+            }
             _.each(catalog.links, function(link){
 
                 //console.log('link', link);
@@ -329,6 +332,8 @@
                     link.navigate(function(feed){
                         //                    content += '<li class="table-view-divider">'+feed.title+'</li>';
                         var content = '';
+                        //TODO separate by author
+
                         _.each(feed.entries, function(entry){
 
                             var bookExists = _.find(books, function(b){
@@ -358,6 +363,7 @@
                                     categories.push(entry.categories[4]);
                                 }
                                 content += '<li class="table-view-cell media" id="'+entry.id+'"><a class="'+cl+' new-book" href="'+epubLink.url+'"><img class="media-object pull-left" src="'+thumbnail.url+'" width="42"><div class="media-body">'+entry.title+'<p>'+categories.join(',')+'</p></div></a></li>';
+
                             }
 
                         });

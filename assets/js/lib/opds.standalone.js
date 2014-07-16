@@ -513,11 +513,6 @@ OPDS.Support.Browser = Class.$extend({
 		    callback.apply(browser, [browser]);
 		  });
 
-            $.ajax({
-                url: url,
-
-            })
-
 		} catch (e) {
 		  if (jQuery.browser.msie && window.XDomainRequest) {
         var xdr = new XDomainRequest();

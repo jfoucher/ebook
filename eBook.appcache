@@ -4,9 +4,7 @@ index.html
 locales/en/app/properties
 locales/es/app/properties
 locales/fr/app/properties
-assets/css/fonts.css
-assets/css/app.css
-assets/css/ratchet.css
+assets/css/css.css
 assets/fonts/ratchicons.eot
 assets/fonts/ratchicons.svg
 assets/fonts/ratchicons.ttf
@@ -38,13 +36,4 @@ assets/img/logo-120.png
 assets/img/logo-128.png
 assets/img/logo-256.png
 assets/img/spinner.gif
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
-assets/js/lib/async_storage.js
+assets/js/js.js

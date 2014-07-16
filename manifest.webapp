@@ -39,10 +39,11 @@
   },
   "permissions": {
     "device-storage:sdcard": {
-      "access": "readwrite"
+      "access": "readwrite",
+      "description": "Save books to your sdcard"
     },
-    "storage": {},
-    "systemXHR": {}
+    "storage": {"description": "Cache books for faster opening"},
+    "systemXHR": {"description": "Download books from feedbooks.com"}
   },
   "default_locale": "en"
 }

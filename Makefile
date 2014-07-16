@@ -47,7 +47,8 @@ app: concat_js concat_css
 	terminal-notifier -title "Make" -message "The target all: is complete"
 
 zip: app
-	zip -r -9 app.zip app/
+	cd app/ && zip -r -9 ../eBook.zip *
+
 
 concat_js: $(JS_MINIFIED)
 	cat $^ >$@
@@ -72,7 +73,7 @@ concat_css: $(CSS_MINIFIED)
 # target: clean - Removes minified CSS and JS files.
 clean:
 	rm -rf app/
-	rm -f app.zip
+	rm -f eBook.zip
 
 # target: help - Displays help.
 help:
