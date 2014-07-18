@@ -55,12 +55,6 @@ concat_css: $(CSS_MINIFIED)
 	$(YUI_COMPRESSOR) $(YUI_COMPRESSOR_FLAGS) --type css $< >$@
 	@echo
 
-%-min.js: $(filter-out %-min.js js.js, %.js)
-	@echo '==> Minifying $<'
-	$(YUI_COMPRESSOR) $(YUI_COMPRESSOR_FLAGS) --type js $< >$@
-	@echo
-
-
 # target: clean - Removes minified CSS and JS files.
 clean:
 	rm -rf app/
