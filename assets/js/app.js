@@ -202,8 +202,14 @@
     });
     $('#index')
 
-        .on('click', 'a[data-title]', function(e){
-        e.preventDefault();
+        .on('click', 'a[data-title]:not(.navigate-right)', function(e){
+
+            e.preventDefault();
+
+            //TODO if we are postprocessing show modal to say so
+
+            alert(document.webL10n.get('wait-postprocessing', {"title": e.currentTarget.getAttribute('data-title')}));
+
     }).on('click', 'a.navigate-right', function(e){
 
         e.preventDefault();
