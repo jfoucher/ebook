@@ -29,30 +29,21 @@ minify-css: $(CSS_FILES) $(CSS_MINIFIED)
 # target: minify-js - Minifies JS.
 minify-js: $(JS_FILES) $(JS_MINIFIED)
 
-app: concat_js concat_css
+app: concat_css
 	mkdir -p app/assets/css
-	mkdir -p app/assets/js/lib
 	cp -r assets/fonts app/assets/fonts
 	cp -r assets/img app/assets/img
-	cp assets/js/lib/deflate.js app/assets/js/lib/deflate.js
-	cp assets/js/lib/inflate.js app/assets/js/lib/inflate.js
+	cp -r assets/js app/assets/js
 	mv concat_css app/assets/css/css.css
-	mv concat_js app/assets/js/js.js
-	perl -0pe 's|<script src="assets/js/lib/js-epub.js"></script>.*<script src="assets/js/app.js"></script>|<script src="assets/js/js.js"></script>|gis' index.html > app/index.html
+	cp -r index.html app/index.html
 	perl -pi -e 's#<link href="assets/css/app.css" rel="stylesheet" />#<link href="assets/css/css.css" rel="stylesheet" />#' app/index.html
 	cp -r locales app/locales
 	cp -r manifest.webapp app/manifest.webapp
 	rm -f assets/css/css.css
-	rm -f assets/js/js.js
 	terminal-notifier -title "Make" -message "The target all: is complete"
 
 zip: app
 	cd app/ && zip -r -9 ../eBook.zip *
-
-
-concat_js: $(JS_MINIFIED)
-	cat $^ >$@
-	rm -f $^
 
 concat_css: $(CSS_MINIFIED)
 	perl -pi -e 's#\@import[^;]*;##gis' $^
