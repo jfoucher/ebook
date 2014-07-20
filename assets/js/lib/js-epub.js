@@ -64,7 +64,7 @@ window.loading = false;
                         return entry.filename == self.opfPath
                     });
 
-                    opfFile.getData(new zip.TextWriter(), function(text) {
+                    opfFile.getData(new zip.TextWriter('UTF-8'), function(text) {
                         self.opf = self.readOpf(text);
                         ret.resolve();
                     })
@@ -89,7 +89,7 @@ window.loading = false;
                 return entry.filename == 'mimetype';
             });
 
-            mime.getData(new zip.TextWriter(), function(text) {
+            mime.getData(new zip.TextWriter('UTF-8'), function(text) {
 //                console.log('mimetype', text);
                 ret.resolve(text);
             });
@@ -204,7 +204,7 @@ window.loading = false;
                     return entry.filename == href;
                 });
 
-                file.getData(new zip.TextWriter(), function(result) {
+                file.getData(new zip.TextWriter('UTF-8'), function(result) {
                     if (mediaType === "application/xhtml+xml") {
                         //dont post process now
                         self.postProcessHTML(result, href).done(function(html){
@@ -219,7 +219,7 @@ window.loading = false;
 
 
                             } else {
-                                loading = false;
+                                window.loading = false;
                                 self.ret.resolve(self.bookId);
                                 self.ret = null;
                             }
