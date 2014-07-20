@@ -213,16 +213,11 @@
 			var reader = new FileReader();
 
             reader.onloadend = function(e){
-                console.log('load end', e);
                 callback(e.target.result);
-            }
+            };
 			reader.onerror = function(){
-                console.log('could not read blob');
                 onerror();
             };
-            reader.onprogress = function(e){
-                console.log('reader progress',e);
-            }
 			reader.readAsText(blob, encoding);
 		}
 

@@ -1,7 +1,7 @@
 {
   "version": "0.1.2",
   "name": "eBook",
-  "description": "Great eBook reader for firefox OS. Currently only handles epub file type. Put some ebooks on your SD card and you'll be able to read within seconds. You can also download and read free ebooks from feedbooks.com",
+  "description": "Great eBook reader for firefox OS. Currently only handles epub file type. Put some ebooks on your SD card and you'll be able to read within seconds. You can also download and read free ebooks from feedbooks.com. Tested on Firefox OS version 1.2 and higher",
   "launch_path": "/index.html",
   "type": "privileged",
   "icons": {

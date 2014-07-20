@@ -55,7 +55,7 @@ window.loading = false;
                     return entry.filename == 'META-INF/container.xml'
                 });
 
-                container.getData(new zip.TextWriter(), function(text) {
+                container.getData(new zip.TextWriter('UTF-8'), function(text) {
                     // text contains the entry data as a String
                     self.container = text;
                     self.opfPath = self.getOpfPathFromContainer();
