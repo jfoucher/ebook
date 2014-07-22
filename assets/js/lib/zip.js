@@ -26,6 +26,7 @@
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+"use strict";
 (function(obj) {
 
 	var ERR_BAD_FORMAT = "File format is not recognized.";

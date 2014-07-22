@@ -1,3 +1,5 @@
+"use strict";
+
 window.loading = false;
 
 (function (GLOBAL) {
@@ -150,7 +152,7 @@ window.loading = false;
             }
 
             //this.opf = opf;
-            this.bookId = hashCode(opf.metadata['dc:identifier']._text)+'';
+            this.bookId = eBook.hashCode(opf.metadata['dc:identifier']._text)+'';
             return opf;
         },
 
@@ -231,7 +233,7 @@ window.loading = false;
                             self.ret.notify({'progress':progress, 'bookId': self.bookId});
                             self.saveChapter(num+1);
                         } else {
-                            loading = false;
+                            window.loading = false;
                             self.ret.resolve(self.bookId);
                             self.ret = null;
                         }

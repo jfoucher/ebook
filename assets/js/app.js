@@ -1,4 +1,4 @@
-
+"use strict";
 
 (function(){
 
@@ -12,24 +12,24 @@
         asyncStorage.getItem('reading', function(reading){
             if(reading) {
                 $('#read-book').find('.book-content, .bar').show();
-                showBook(reading).done(function(){
-                    removeHider();
-                    loadBooks().done(function(bks){
-                        showNewBooks(bks);
+                eBook.showBook(reading).done(function(){
+                    eBook.removeHider();
+                    eBook.loadBooks().done(function(bks){
+                        eBook.showNewBooks(bks);
                         $('.currently-reading').removeClass('currently-reading');
                         $('#'+reading).addClass('currently-reading');
                     });
                 });
             } else {
-                loadBooks().done(function(bks){
-                    removeHider();
-                    showNewBooks(bks);
+                eBook.loadBooks().done(function(bks){
+                    eBook.removeHider();
+                    eBook.showNewBooks(bks);
                 });
             }
         });
     } catch(e) {
-        removeHider();
-        showNewBooks([]);
+        eBook.removeHider();
+        eBook.showNewBooks([]);
     }
 
 
@@ -44,7 +44,7 @@
 
     }).on('click', 'a[data-refresh]', function(e){
         e.preventDefault();
-        loadBooks(true);
+        eBook.loadBooks(true);
 
     }).on('click','a.chapter', function(e){
         e.preventDefault();
@@ -83,7 +83,7 @@
 
             $('#'+rb.data('reading')).find('.book-read-percent').css({'transform': 'translate3d(-'+progress+'%, 0, 0)'});
             rb.find('.content').get(0).scrollTop = 0;
-            updateBook(rb.data('reading'), {chapter: nextChapter});
+            eBook.updateBook(rb.data('reading'), {chapter: nextChapter});
         });
 
 
@@ -101,7 +101,7 @@
         $('#read-book-bar').removeClass('hidden');
         asyncStorage.setItem('reading', false);
         rb.find('.book-content').empty();
-        updateBook(bookId, {scroll: scrl, chapter: chapter});
+        eBook.updateBook(bookId, {scroll: scrl, chapter: chapter});
     }).on('click', 'a', function(){
         if(ta) clearTimeout(ta);
     });
@@ -189,7 +189,7 @@
         var $el = $(e.currentTarget),
             li = $('#'+$el.data('id'));
         li.addClass('removing');
-        deleteBook($el.data('id')).done(function(){
+        eBook.deleteBook($el.data('id')).done(function(){
             $('#read-book').find('.book-content, .bar').hide();
             asyncStorage.setItem('reading', false);
             li.remove();
@@ -223,11 +223,11 @@
         if (rb.data('reading')) {
             var chapter = rb.data('chapter'),
                 scrl = rb.find('.content').get(0).scrollTop;
-            updateBook(rb.data('reading'), {scroll: scrl, chapter: chapter});
+            eBook.updateBook(rb.data('reading'), {scroll: scrl, chapter: chapter});
         }
 
 
-        showBook(id);
+            eBook.showBook(id);
         asyncStorage.setItem('reading', id);
 
     }).on('touchstart', 'li', function(e){
@@ -276,11 +276,11 @@
         $('.active').removeClass('active');
         $('#index').addClass('active');
         var id = e.currentTarget.getAttribute('href');
-        showBook(id);
+        eBook.showBook(id);
         asyncStorage.setItem('reading', id);
     })
     .on('click', 'a.new-book.navigate-right', function(e){
-        createBookFromClick(e);
+            eBook.createBookFromClick(e);
     });
 
     document.addEventListener("visibilitychange", function() {
@@ -293,7 +293,7 @@
                     scrl = rb.find('.content').get(0).scrollTop;
                 asyncStorage.setItem('reading', bookId);
     //        //console.log('scroll position is ', scrl);
-                updateBook(bookId, {scroll: scrl});
+                eBook.updateBook(bookId, {scroll: scrl});
             }else {
                 asyncStorage.setItem('reading', false);
             }
@@ -390,7 +390,7 @@
 
     $(document).on('click', 'a[href*="feedbooks.com"][href$="epub"]', function(e){
         e.preventDefault();
-        createBookFromClick(e.currentTarget.getAttribute('href'));
+        eBook.createBookFromClick(e.currentTarget.getAttribute('href'));
         //TODO load book
     });
     $(document).on('click', 'a[href="^http"]', function(e){
