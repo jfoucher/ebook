@@ -7,7 +7,18 @@ body{
     width: 960px;
     margin: 4em auto 0 auto;
 }
-
+#main-content {
+    font-weight: 300;
+}
+h2.title {
+    background: #eee;
+    border-top: 1px solid #ccc;
+    font-family: Lato, sans-serif;
+    font-weight: 300;
+    text-align: center;
+    line-height: 80px;
+    margin-top: 80px;
+}
 
 .left {
     height: 628px;
@@ -35,7 +46,7 @@ body{
 }
 #footer #mc_embed_signup {
     background:transparent;
-    width: 300px;
+    width: 400px;
     float: right;
     padding-top: 0;
 }
